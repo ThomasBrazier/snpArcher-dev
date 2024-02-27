@@ -255,6 +255,15 @@ def get_input_for_coverage(wildcards):
     d4files = expand("results/{{refGenome}}/callable_sites/{sample}.per-base.d4", sample=_samples)
     return {"d4files": d4files}
 
+def get_all_callable_beds(wildcards):
+    # 
+    _samples = samples.loc[(samples["refGenome"] == wildcards.refGenome)]["BioSample"].unique().tolist()
+    names = ",".join(_samples)
+    
+    callable_beds = expand("results/{{refGenome}}/callable_sites/{sample}.callable.bed", sample=_samples)
+    callable_mappable_beds = expand("results/{{refGenome}}/callable_sites/{sample}.callable.mappable.bed", sample=_samples)
+    return {"callable_beds": callable_beds, "names": names, "callable_mappable_beds": callable_mappable_beds}
+
 
 def get_input_covstats(wildcards):
     # Gets the correct sample given the organism and reference genome for the bedgraph merge step
