@@ -1,6 +1,6 @@
 __default__:
-    partition: "holy-cow,holy-smokes"
+    partition: "genouest,bigmem,ecobio"
     time: 9000
     nodes: 1
-    mem: 1000
+    mem: 10000
     output: "logs/slurm/slurm-%j.out"
