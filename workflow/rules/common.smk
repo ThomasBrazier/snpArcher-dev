@@ -255,8 +255,17 @@ def get_input_for_coverage(wildcards):
     d4files = expand("results/{{refGenome}}/callable_sites/{sample}.per-base.d4", sample=_samples)
     return {"d4files": d4files}
 
+def get_mean_cov(summary_file):
+
+    with open(summary_file, "r") as f:
+        for line in f:
+            if line.startswith("total"):
+                sample_mean = float(line.split("\t")[3])
+
+    return sample_mean
+
 def get_all_callable_beds(wildcards):
-    # 
+
     _samples = samples.loc[(samples["refGenome"] == wildcards.refGenome)]["BioSample"].unique().tolist()
     names = ",".join(_samples)
     
