@@ -22,7 +22,7 @@ rule mosdepth_1:
 
 rule mosdepth_2:
     input:
-        sample_mean = get_mean_cov("results/{refGenome}/callable_sites/{sample}.mosdepth.summary.txt"),
+        summary = "results/{refGenome}/callable_sites/{sample}.mosdepth.summary.txt",
         bam = "results/{refGenome}/bams/{sample}_final.bam",
         bai = "results/{refGenome}/bams/{sample}_final.bam.bai"
     output:
@@ -40,11 +40,12 @@ rule mosdepth_2:
     params:
         prefix = os.path.join(workflow.default_remote_prefix, "results/{refGenome}/callable_sites/{sample}.2"),
         lower = float(config["cov_threshold_lower"]),
-        upper = float(config["cov_threshold_upper"])
+        upper = float(config["cov_threshold_upper"]),
+        sample_mean = get_mean_cov("results/{refGenome}/callable_sites/{sample}.mosdepth.summary.txt")
     shell:
         "export MOSDEPTH_Q0=NO_COVERAGE && export MOSDEPTH_Q1=LOW_COVERAGE && export MOSDEPTH_Q2=CALLABLE \
         && export MOSDEPTH_Q3=HIGH_COVERAGE && \
-        mosdepth --no-per-base -t {threads} --quantize 0:1:{params.lower}:{input.sample_mean}*{params.upper}: {params.prefix} {input.bam}"
+        mosdepth --no-per-base -t {threads} --quantize 0:1:{params.lower}:{params.sample_mean}*{params.upper}: {params.prefix} {input.bam}"
 
 rule callable_bed_per_sample:
     input:
