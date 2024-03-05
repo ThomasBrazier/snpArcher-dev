@@ -42,3 +42,5 @@ tmp/
 .test/ci/results
 .test/ci/benchmarks
 .test/ci/logs
+
+profiles/slurm/
