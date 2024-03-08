@@ -3,7 +3,7 @@ rule mosdepth_1:
         bam = "results/{refGenome}/bams/{sample}_final.bam",
         bai = "results/{refGenome}/bams/{sample}_final.bam.bai"
     output:
-        "results/{refGenome}/callable_sites/{sample}.1.mosdepth.global.dist.txt",
+        dist = "results/{refGenome}/callable_sites/{sample}.1.mosdepth.global.dist.txt",
         summary = "results/{refGenome}/callable_sites/{sample}.1.mosdepth.summary.txt"
     conda:
         "../envs/cov_filter.yml"
