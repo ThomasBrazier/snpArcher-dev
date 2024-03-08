@@ -63,8 +63,8 @@ rule callable_bed_per_sample:
 
 rule add_mappability:
     input:
-        callable_bed = "results/{refGenome}/callable_sites/{sample}.callable.bed",
-        map_all = "results/{refGenome}/callable_sites/{prefix}_callable_sites_map.bed"
+        callable_bed = "results/{refGenome}/callable_sites/{sample}.callable.bed"
+        #map_all = "results/{refGenome}/callable_sites/{prefix}_callable_sites_map.bed"
     output:
         callable_mappable = "results/{refGenome}/callable_sites/{sample}.callable.mappable.bed"
     conda:
