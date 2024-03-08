@@ -74,7 +74,7 @@ rule add_mappability:
 
 rule callable_bed_all:
     input:
-        callable_beds = "results/{refGenome}/callable_sites/{sample}.callable.bed"
+        callable_beds = "results/{refGenome}/callable_sites/{sample}.callable.bed",
         callable_mappable_beds = "results/{refGenome}/callable_sites/{sample}.callable.mappable.bed"
     output:
         callable_bed_all = "results/{refGenome}/callable_sites/{prefix}_all_samples_callable.bed",
