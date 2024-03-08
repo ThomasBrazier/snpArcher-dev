@@ -277,7 +277,15 @@ def get_all_callable_beds(wildcards):
     
     callable_beds = expand("results/{{refGenome}}/callable_sites/{sample}.callable.bed", sample=_samples)
     callable_mappable_beds = expand("results/{{refGenome}}/callable_sites/{sample}.callable.mappable.bed", sample=_samples)
-    return {"callable_beds": callable_beds, "names": names, "callable_mappable_beds": callable_mappable_beds}
+    return {"callable_beds": callable_beds, "callable_mappable_beds": callable_mappable_beds}
+
+
+def get_sample_names(wildcards):
+
+    _samples = samples.loc[(samples["refGenome"] == wildcards.refGenome)]["BioSample"].unique().tolist()
+    names = ",".join(_samples)
+    
+    return {"names": names}
 
 
 def get_input_covstats(wildcards):

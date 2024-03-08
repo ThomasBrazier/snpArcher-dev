@@ -74,17 +74,16 @@ rule add_mappability:
 
 rule callable_bed_all:
     input:
-        callable_beds = "results/{refGenome}/callable_sites/{sample}.callable.bed",
-        callable_mappable_beds = "results/{refGenome}/callable_sites/{sample}.callable.mappable.bed"
+        unpack(get_all_callable_beds)
     output:
         callable_bed_all = "results/{refGenome}/callable_sites/{prefix}_all_samples_callable.bed",
         callable_mappable_bed_all = "results/{refGenome}/callable_sites/{prefix}_all_samples_callable_mappable.bed"
     params:
-        unpack(get_all_callable_beds)
+        unpack(get_sample_names)
     conda:
         "../envs/cov_filter.yml"
     shell:
         """
-        bedtools multiinter -names {params.names} {.callable_beds} > {output.callable_bed_all}
+        bedtools multiinter -names {params.names} {input.callable_beds} > {output.callable_bed_all}
         bedtools multiinter -names {params.names} {input.callable_mappable_beds} > {output.callable_mappable_bed_all}
         """
