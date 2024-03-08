@@ -22,7 +22,7 @@ rule mosdepth_1:
 
 rule mosdepth_2:
     input:
-        summary = "results/{refGenome}/callable_sites/{sample}.mosdepth.summary.txt",
+        summary = "results/{refGenome}/callable_sites/{sample}.1.mosdepth.summary.txt",
         bam = "results/{refGenome}/bams/{sample}_final.bam",
         bai = "results/{refGenome}/bams/{sample}_final.bam.bai"
     output:
@@ -41,7 +41,7 @@ rule mosdepth_2:
         prefix = os.path.join(workflow.default_remote_prefix, "results/{refGenome}/callable_sites/{sample}.2"),
         lower = float(config["cov_threshold_lower"]),
         upper = float(config["cov_threshold_upper"]),
-        sample_mean = get_mean_cov("results/{refGenome}/callable_sites/{sample}.mosdepth.summary.txt")
+        sample_mean = lambda wildcards, input: get_mean_cov(input.summary)
     shell:
         "export MOSDEPTH_Q0=NO_COVERAGE && export MOSDEPTH_Q1=LOW_COVERAGE && export MOSDEPTH_Q2=CALLABLE \
         && export MOSDEPTH_Q3=HIGH_COVERAGE && \

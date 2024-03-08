@@ -37,7 +37,7 @@ def get_output():
         out.extend(
             expand( "results/{refGenome}/summary_stats/{prefix}_bam_sumstats.txt", refGenome=ref, prefix=config["final_prefix"]))
         out.extend(
-            expand("results/{refGenome}/{prefix}_callable_sites.bed", refGenome=ref, prefix=config["final_prefix"]))
+            expand( "results/{refGenome}/callable_sites/{prefix}_all_samples.callable.bed", refGenome=ref, prefix=config["final_prefix"]))
         if sample_counts[ref] > 2:
             out.append(rules.qc_all.input)
         if "SampleType" in samples.columns:
@@ -257,6 +257,9 @@ def get_input_for_coverage(wildcards):
 
 
 def get_mean_cov(summary_file):
+
+    if not Path(summary_file).exists():
+        return -1
 
     with open(summary_file, "r") as f:
         for line in f:
