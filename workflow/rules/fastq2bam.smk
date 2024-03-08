@@ -3,10 +3,10 @@ rule bwa_map:
         ref = "results/{refGenome}/data/genome/{refGenome}.fna",
         r1 = "results/{refGenome}/filtered_fastqs/{sample}/{run}_1.fastq.gz",
         r2 = "results/{refGenome}/filtered_fastqs/{sample}/{run}_2.fastq.gz",
-        indexes = expand("results/{{refGenome}}/data/genome/{{refGenome}}.fna.{ext}", ext=["sa", "pac", "bwt", "ann", "amb", "fai"]),
+        indexes = expand("results/{{refGenome}}/data/genome/{{refGenome}}.fna.{ext}", ext=["sa", "pac", "bwt", "ann", "amb", "fai"])
     output: 
         bam = temp("results/{refGenome}/bams/preMerge/{sample}/{run}.bam"),
-        bai = temp("results/{refGenome}/bams/preMerge/{sample}/{run}.bam.bai"),
+        bai = temp("results/{refGenome}/bams/preMerge/{sample}/{run}.bam.bai")
     params:
         rg = get_read_group
     conda:

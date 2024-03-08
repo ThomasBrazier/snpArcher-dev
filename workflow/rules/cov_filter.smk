@@ -41,11 +41,15 @@ rule mosdepth_2:
         prefix = os.path.join(workflow.default_remote_prefix, "results/{refGenome}/callable_sites/{sample}.2"),
         lower = float(config["cov_threshold_lower"]),
         upper = float(config["cov_threshold_upper"]),
-        sample_mean = lambda wildcards, input: get_mean_cov(input.summary)
+        sample_mean = get_mean_cov("results/{refGenome}/callable_sites/{sample}.1.mosdepth.summary.txt")
     shell:
-        "export MOSDEPTH_Q0=NO_COVERAGE && export MOSDEPTH_Q1=LOW_COVERAGE && export MOSDEPTH_Q2=CALLABLE \
-        && export MOSDEPTH_Q3=HIGH_COVERAGE && \
-        mosdepth --no-per-base -t {threads} --quantize 0:1:{params.lower}:{params.sample_mean}*{params.upper}: {params.prefix} {input.bam}"
+        """
+        export MOSDEPTH_Q0=NO_COVERAGE
+        export MOSDEPTH_Q1=LOW_COVERAGE
+        export MOSDEPTH_Q2=CALLABLE
+        export MOSDEPTH_Q3=HIGH_COVERAGE
+        mosdepth --no-per-base -t {threads} --quantize 0:1:{params.lower}:{params.sample_mean}*{params.upper}: {params.prefix} {input.bam}
+        """
 
 rule callable_bed_per_sample:
     input:
@@ -72,10 +76,12 @@ rule callable_bed_all:
     input:
         unpack(get_all_callable_beds)
     output:
-        callable_bed_all = "results/{refGenome}/callable_sites/{prefix}_all_samples.callable.bed",
-        callable_mappable_bed_all = "results/{refGenome}/callable_sites/{prefix}_all_samples.callable.mappable.bed"
+        callable_bed_all = "results/{refGenome}/callable_sites/{prefix}_all_samples_callable.bed",
+        callable_mappable_bed_all = "results/{refGenome}/callable_sites/{prefix}_all_samples_callable_mappable.bed"
     conda:
         "../envs/cov_filter.yml"
     shell:
-        "bedtools multiinter -names {input.names} {input.callable_beds} > {output.callable_bed_all} && \
-        bedtools multiinter -names {input.names} {input.callable_mappable_beds} > {output.callable_mappable_bed_all}"
+        """
+        bedtools multiinter -names {input.names} {input.callable_beds} > {output.callable_bed_all}
+        bedtools multiinter -names {input.names} {input.callable_mappable_beds} > {output.callable_mappable_bed_all}
+        """

@@ -36,8 +36,9 @@ def get_output():
             expand( "results/{refGenome}/{prefix}_raw.vcf.gz",refGenome=ref, prefix=config["final_prefix"]))
         out.extend(
             expand( "results/{refGenome}/summary_stats/{prefix}_bam_sumstats.txt", refGenome=ref, prefix=config["final_prefix"]))
-        out.extend(
-            expand( "results/{refGenome}/callable_sites/{prefix}_all_samples.callable.bed", refGenome=ref, prefix=config["final_prefix"]))
+        if config['cov_filter']:
+            out.extend(
+                expand("results/{refGenome}/callable_sites/{prefix}_all_samples_callable.bed", refGenome=ref, prefix=config["final_prefix"]))
         if sample_counts[ref] > 2:
             out.append(rules.qc_all.input)
         if "SampleType" in samples.columns:
