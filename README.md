@@ -5,6 +5,23 @@
 
 snpArcher is a reproducible workflow optimized for nonmodel organisms and comparisons across datasets, built on the [Snakemake](https://snakemake.readthedocs.io/en/stable/index.html#) workflow management system. It provides a streamlined approach to dataset acquisition, variant calling, quality control, and downstream analysis.
 
+
+## Fork of snpArcher
+
+This is a fork of the original SNPArcher to add new features, including:
+* make fastq and bam as temporary files to scale up to large datasets in smaller clusters (input fastq and intermediate bam files are removed on a per sample basis)
+* the `quantize_cov` module implementing the mosdepth quantize as in Laetsch et al. (2023)
+
+
+### Usage
+
+
+
+
+
+
+## snpArcher Original
+
 ### Usage
 For usage instructions and complete documentation, please visit our [docs](https://snparcher.readthedocs.io/en/latest/).
 

@@ -88,5 +88,3 @@ cov_threshold_stdev:
 ## and make sure all other coverage variables are empty
 
 cov_threshold_rel: 
-
-
