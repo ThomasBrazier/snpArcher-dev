@@ -10,11 +10,20 @@ snpArcher is a reproducible workflow optimized for nonmodel organisms and compar
 
 This is a fork of the original SNPArcher to add new features, including:
 * make fastq and bam as temporary files to scale up to large datasets in smaller clusters (input fastq and intermediate bam files are removed on a per sample basis)
-* the `quantize_cov` module implementing the mosdepth quantize as in Laetsch et al. (2023)
+* the `quantize_cov` module implementing the mosdepth quantize method as in Laetsch et al. (2023)
 
 
 ### Usage
 
+You first need to make a working directory, either within or outside the snpArcher directory.
+
+Within your working directory you need to copy the `config/` directory and modify the settings (usually `config.yaml` and `samples.csv`) according to your analyses. You can add multiple sub-directories if you wish to run multiple datasets in parallel (e.g. `<your working directory>/<your dataset>/`). Snakemake will install a `.snakemake` config directory at the first run to install conda envs (it can take times).
+
+Run the analyses from the snpArcher directory with :
+
+```
+snakemake --snakefile workflow/Snakefile --use-conda --cores <number of cores> --printshellcmds -d <your working directory>/<your dataset>/
+```
 
 
 
