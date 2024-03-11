@@ -2,11 +2,11 @@
 def get_all_callable_beds(wildcards):
 
     _samples = samples.loc[(samples["refGenome"] == wildcards.refGenome)]["BioSample"].unique().tolist()
+
     names = ",".join(_samples)
     
-    callable_beds = expand("results/{{refGenome}}/callable_sites/{sample}.callable.bed", sample=_samples)
-    callable_mappable_beds = expand("results/{{refGenome}}/callable_sites/{sample}.callable.mappable.bed", sample=_samples)
-    return {"callable_beds": callable_beds, "callable_mappable_beds": callable_mappable_beds}
+    callable_beds = expand("results/{{refGenome}}/quantize/{sample}.callable.bed", sample=_samples)
+    return {"callable_beds": callable_beds}
 
 
 def get_mean_cov(summary_file):
@@ -27,4 +27,12 @@ def get_sample_names(wildcards):
     _samples = samples.loc[(samples["refGenome"] == wildcards.refGenome)]["BioSample"].unique().tolist()
     names = ",".join(_samples)
     
-    return {"names": names}
+    return names
+
+
+def get_sample_size(wildcards):
+
+    _samples = samples.loc[(samples["refGenome"] == wildcards.refGenome)]["BioSample"].unique().tolist()
+    sample_size = len(_samples)
+    
+    return sample_size

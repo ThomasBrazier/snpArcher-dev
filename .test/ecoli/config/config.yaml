@@ -88,3 +88,18 @@ cov_threshold_stdev:
 ## and make sure all other coverage variables are empty
 
 cov_threshold_rel: 
+
+########################################
+## coverage thresholds - mosdepth quantize new module ##
+########################################
+
+# An optional alternative method to estimate mappability
+# based on mosdepth quantize
+
+## the lower threshold is the absolute number of reads required for callability
+## the upper threshold is in terms of the sample-specific mean coverage
+## this approach uses mosdepth quantize as in Laetsch et al. (2023)
+quantize_cov_filter: True #set to True if you want to use the alternative quantize method for the callable sites bed file
+
+quantize_cov_threshold_lower: 10
+quantize_cov_threshold_upper: 3

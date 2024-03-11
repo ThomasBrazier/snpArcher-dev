@@ -59,14 +59,13 @@ module trackhub:
 use rule * from trackhub as trackhub_*
 
 
-if config['quantize_cov_filter']:
-    module quantize_coverage:
-        snakefile:
-            "modules/quantize_cov/Snakefile"
-        config:
-            config
+module quantize_coverage:
+    snakefile:
+        "modules/quantize_cov/Snakefile"
+    config:
+        config
 
-    use rule * from quantize_coverage as quantize_coverage_*
+use rule * from quantize_coverage as quantize_coverage_*
 
 
 rule all:
