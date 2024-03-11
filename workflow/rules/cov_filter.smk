@@ -41,7 +41,7 @@ rule mosdepth_2:
         prefix = os.path.join(workflow.default_remote_prefix, "results/{refGenome}/callable_sites/{sample}.2"),
         lower = float(config["cov_threshold_lower"]),
         upper = float(config["cov_threshold_upper"]),
-        sample_mean = get_mean_cov("results/{refGenome}/callable_sites/{sample}.1.mosdepth.summary.txt")
+        sample_mean = lambda wildcards, input: get_mean_cov(input.summary)
     shell:
         """
         export MOSDEPTH_Q0=NO_COVERAGE
@@ -79,11 +79,11 @@ rule callable_bed_all:
         callable_bed_all = "results/{refGenome}/callable_sites/{prefix}_all_samples_callable.bed",
         callable_mappable_bed_all = "results/{refGenome}/callable_sites/{prefix}_all_samples_callable_mappable.bed"
     params:
-        unpack(get_sample_names)
+        get_sample_names
     conda:
         "../envs/cov_filter.yml"
     shell:
         """
-        bedtools multiinter -names {params.names} {input.callable_beds} > {output.callable_bed_all}
-        bedtools multiinter -names {params.names} {input.callable_mappable_beds} > {output.callable_mappable_bed_all}
+        bedtools multiinter -names {params[names]} {input.callable_beds} > {output.callable_bed_all}
+        bedtools multiinter -names {params[names]} {input.callable_mappable_beds} > {output.callable_mappable_bed_all}
         """
