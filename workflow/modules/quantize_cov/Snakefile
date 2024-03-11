@@ -1,0 +1,98 @@
+import pandas as pd
+import os
+include: "common.smk"
+
+
+samples = pd.read_table(config["samples"], sep=",", dtype=str).replace(' ', '_', regex=True)
+REFGENOME = samples['refGenome'].unique().tolist()
+
+
+rule all:
+    input:
+        expand("results/{refGenome}/quantize/{prefix}_all_samples_callable.bed", refGenome=ref, prefix=config["final_prefix"])
+
+
+rule mosdepth_summary:
+    input:
+        bam = "results/{refGenome}/bams/{sample}_final.bam",
+        bai = "results/{refGenome}/bams/{sample}_final.bam.bai"
+    output:
+        dist = "results/{refGenome}/quantize/{sample}.mosdepth.global.dist.txt",
+        summary = "results/{refGenome}/quantize/{sample}.mosdepth.summary.txt"
+    conda:
+        "../envs/cov_quantize.yml"
+    log:
+        "logs/{refGenome}/mosdepth_summary/{sample}.txt"
+    benchmark:
+        "benchmarks/{refGenome}/mosdepth_summary/{sample}.txt"
+    params:
+        prefix = os.path.join(workflow.default_remote_prefix, "results/{refGenome}/quantize/{sample}")
+    shell:
+        "mosdepth --no-per-base -t {threads} {params.prefix} {input.bam}"
+
+
+rule mosdepth_quantize:
+    input:
+        summary = "results/{refGenome}/quantize/{sample}.mosdepth.summary.txt",
+        bam = "results/{refGenome}/bams/{sample}_final.bam",
+        bai = "results/{refGenome}/bams/{sample}_final.bam.bai"
+    output:
+        quantised = "results/{refGenome}/quantize/{sample}.quantized.bed.gz"
+    conda:
+        "../envs/cov_quantize.yml"
+    log:
+        "logs/{refGenome}/mosdepth_quantize/{sample}.txt"
+    benchmark:
+        "benchmarks/{refGenome}/mosdepth_quantize/{sample}.txt"
+    params:
+        prefix = os.path.join(workflow.default_remote_prefix, "results/{refGenome}/quantize/{sample}"),
+        lower = float(config["quantize_cov_threshold_lower"]),
+        upper = float(config["quantize_cov_threshold_upper"]),
+        sample_mean = lambda wildcards, input: get_mean_cov(input.summary)
+    shell:
+        """
+        export MOSDEPTH_Q0=NO_COVERAGE
+        export MOSDEPTH_Q1=LOW_COVERAGE
+        export MOSDEPTH_Q2=CALLABLE
+        export MOSDEPTH_Q3=HIGH_COVERAGE
+        mosdepth --no-per-base -t {threads} --quantize 0:1:{params.lower}:{params.sample_mean}*{params.upper}: {params.prefix} {input.bam}
+        """
+
+
+rule callable_bed_per_sample:
+    input:
+        quantized = "results/{refGenome}/quantize/{sample}.quantized.bed.gz"
+    output:
+        callable_bed = "results/{refGenome}/quantize/{sample}_callable.bed"
+    conda:
+        "../envs/cov_quantize.yml"
+    shell:
+        "grep CALLABLE {input.quantized} | bedtools merge | bedtools sort > {output.callable_bed}"
+
+
+rule add_mappability:
+    input:
+        callable_bed = "results/{refGenome}/quantize/{sample}_callable.bed"
+    output:
+        callable_mappable = "results/{refGenome}/quantize/{sample}_callable_mappable.bed"
+    conda:
+        "../envs/cov_filter.yml"
+    shell:
+        "bedtools intersect -a {input.callable_bed} -b {input.map_all} | bedtools merge | bedtools sort > {output.callable_mappable}"
+
+
+rule callable_bed_all_samples:
+    input:
+        unpack(get_all_callable_beds)
+    output:
+        callable_bed_all = "results/{refGenome}/quantize/{prefix}_all_samples_callable.bed",
+        callable_mappable_bed_all = "results/{refGenome}/quantize/{prefix}_all_samples_callable_mappable.bed"
+    params:
+        get_sample_names
+    conda:
+        "../envs/cov_filter.yml"
+    shell:
+        """
+        bedtools multiinter -names {params[names]} {input.callable_beds} > {output.callable_bed_all}
+        bedtools multiinter -names {params[names]} {input.callable_mappable_beds} > {output.callable_mappable_bed_all}
+        """
