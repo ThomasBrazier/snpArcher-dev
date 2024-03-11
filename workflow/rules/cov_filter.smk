@@ -18,7 +18,7 @@ rule mosdepth_1:
     params:
         prefix = os.path.join(workflow.default_remote_prefix, "results/{refGenome}/callable_sites/{sample}.1")
     shell:
-        "mosdepth --no-per-base -t {threads} {params.prefix} {input.bam} &> {log}"
+        "mosdepth --no-per-base -t {threads} {params.prefix} {input.bam}"
 
 rule mosdepth_2:
     input:
