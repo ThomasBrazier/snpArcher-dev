@@ -104,4 +104,4 @@ rule add_mappability:
     conda:
         "envs/cov_quantize.yml"
     shell:
-        "bedtools intersect -a {input.callable_bed_all} -b {input.map_all} | bedtools sort | bedtools merge > {output.callable_mappable_all}"
+        "cat {input.callable_bed_all} | cut -f 1,2,3 | bedtools intersect -a - -b {input.map_all} | bedtools sort -i - | bedtools merge -i - > {output.callable_mappable_all}"
