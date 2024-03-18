@@ -88,7 +88,7 @@ rule callable_bed_all_samples:
         """
         if [ {params.n_samples} -gt 1 ];
         then
-        bedtools multiinter -names {params.names} {input.callable_beds} > {output.callable_bed_all}
+        bedtools multiinter -names {params.names} -i {input.callable_beds} | cut -f 1,2,3,4,5 > {output.callable_bed_all}
         else
         cat {input.callable_beds} > {output.callable_bed_all}
         fi
