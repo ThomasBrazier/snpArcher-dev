@@ -11,6 +11,8 @@ dependencies:
   - rust
   - gcc
   - binutils
+  - samtools
+  - htslib
   - make
   - pip:
-      - pyd4
+      - pyd4==0.3.6.2
