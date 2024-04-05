@@ -43,8 +43,8 @@ rule dedup:
     input:
         unpack(dedup_input)
     output:
-        dedupBam = temp("results/{refGenome}/bams/{sample}_final.bam"),
-        dedupBai = temp("results/{refGenome}/bams/{sample}_final.bam.bai")
+        dedupBam = "results/{refGenome}/bams/{sample}_final.bam",
+        dedupBai = "results/{refGenome}/bams/{sample}_final.bam.bai"
     conda:
         "../envs/sambamba.yml"
     resources:
