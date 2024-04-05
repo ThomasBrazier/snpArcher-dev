@@ -103,3 +103,12 @@ quantize_cov_filter: True #set to True if you want to use the alternative quanti
 
 quantize_cov_threshold_lower: 10
 quantize_cov_threshold_upper: 3
+
+########################################
+## module Paralogs                    ##
+########################################
+paralogs: True #set to True if you want to test if SNPs are putative CNVs
+
+# ngsParalog
+minQ: 20 # Minimum base quality score [20]
+mincov: 1 # Minimum number of reads for an individual to be considered 'covered' [1]

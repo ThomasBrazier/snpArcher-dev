@@ -6,4 +6,4 @@ dependencies:
   - bedtools
   - samtools
   - python=3.10
-  - tbrazier::ngsParalog
+  - tbrazier::ngsparalog
