@@ -107,7 +107,7 @@ quantize_cov_threshold_upper: 3
 ########################################
 ## module Paralogs                    ##
 ########################################
-paralogs: True #set to True if you want to test if SNPs are putative CNVs
+paralogs: False #set to True if you want to test if SNPs are putative CNVs
 
 # ngsParalog
 minQ: 20 # Minimum base quality score [20]
