@@ -1,33 +1,16 @@
-<<<<<<< HEAD
-jobs: 10
-restart-times: 3
-max-jobs-per-second: 1
-max-status-checks-per-second: 3
-cores: 8
-#local-cores: 1
-latency-wait: 60
-use-conda: True
-keep-going: True
-rerun-incomplete: True
-jobscript: "/scratch/mbrault/snpArcher-dev/profiles/slurm/slurm-jobscript.sh"
-cluster: "/scratch/mbrault/snpArcher-dev/profiles/slurm/slurm-submit.py"
-cluster-status: "/scratch/mbrault/snpArcher-dev/profiles/slurm/slurm-status.py"
-
-=======
 executor: slurm
 use-conda: True
-jobs: 100 # Have up to N jobs submitted at any given time
+jobs: 30 # Have up to N jobs submitted at any given time
 latency-wait: 100 # Wait N seconds for output files due to latency
-retries: 0 # Retry jobs N times.
+retries: 3 # Retry jobs N times.
 
 # These resources will be applied to all rules. Can be overriden on a per-rule basis below.
 default-resources:
-  mem_mb: attempt * 2000
-  mem_mb_reduced: (attempt * 2000) * 0.9 # Mem allocated to java for GATK rules (tries to prevent OOM errors)
-  slurm_partition: ""
-  slurm_account: # Same as sbatch -A. Not all clusters use this.
-  runtime: 30 # In minutes 
-
+  mem_mb_per_cpu: attempt * 10000
+  mem_mb_per_cpu_reduced: (attempt * 10000) * 0.9 # Mem allocated to java for GATK rules (tries to prevent OOM errors)
+  slurm_partition: "ecobio"
+  slurm_account: mbrault # Same as sbatch -A. Not all clusters use this.
+  runtime: 5760 # In minutes
 
 # Control number of threads each rule will use.
 set-threads:
@@ -40,27 +23,27 @@ set-threads:
   create_db_intervals: 1
   picard_intervals: 1
   # Mappability
-  genmap: 1 # Can use more than 1 thread
+  genmap: 2 # Can use more than 1 thread
   mappability_bed: 1 # Does NOT use more than 1 thread
   # Fastq Processing. Can use more than 1 thread.
-  get_fastq_pe: 1 
-  fastp: 1
+  get_fastq_pe: 4
+  fastp: 4
   # Alignment. Can use more than 1 thread, except merge_bams.
-  bwa_map: 1
-  dedup: 1
+  bwa_map: 2
+  dedup: 2
   merge_bams: 1 # Does NOT use more than 1 thread.
   # GVCF 
-  bam2gvcf: 1 # Should be run with no more than 2 threads.
+  bam2gvcf: 2 # Should be run with no more than 2 threads.
   concat_gvcfs: 1 # Does NOT use more than 1 thread.
   bcftools_norm: 1 # Does NOT use more than 1 thread.
   create_db_mapfile: 1 # Does NOT use more than 1 thread.
-  gvcf2DB: 1 # Should be run with no more than 2 threads.
+  gvcf2DB: 2 # Should be run with no more than 2 threads.
   # VCF
-  DB2vcf: 1 # Should be run with no more than 2 threads.
-  filterVcfs: 1 # Should be run with no more than 2 threads.
-  sort_gatherVcfs: 1 # Should be run with no more than 2 threads.
+  DB2vcf: 2 # Should be run with no more than 2 threads.
+  filterVcfs: 2 # Should be run with no more than 2 threads.
+  sort_gatherVcfs: 2 # Should be run with no more than 2 threads.
   # Callable Bed
-  compute_d4: 1 # Can use more than 1 thread
+  compute_d4: 2 # Can use more than 1 thread
   create_cov_bed: 1 # Does NOT use more than 1 thread.
   merge_d4: 1 # Does NOT use more than 1 thread.
   # Summary Stats Does NOT use more than 1 thread.
@@ -444,4 +427,3 @@ set-threads:
 #     slurm_partition:
 #     runtime:
 #     cpus_per_task:
->>>>>>> upstream/main

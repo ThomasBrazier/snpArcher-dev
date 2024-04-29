@@ -5,8 +5,8 @@ rule bwa_map:
         r2 = "results/{refGenome}/filtered_fastqs/{sample}/{run}_2.fastq.gz",
         indexes = expand("results/{{refGenome}}/data/genome/{{refGenome}}.fna.{ext}", ext=["sa", "pac", "bwt", "ann", "amb", "fai"]),
     output: 
-        bam = temp("results/{refGenome}/bams/preMerge/{sample}/{run}.bam"),
-        bai = temp("results/{refGenome}/bams/preMerge/{sample}/{run}.bam.bai"),
+        bam = "results/{refGenome}/bams/preMerge/{sample}/{run}.bam",
+        bai = "results/{refGenome}/bams/preMerge/{sample}/{run}.bam.bai",
     params:
         rg = get_read_group
     conda:
@@ -22,8 +22,8 @@ rule merge_bams:
     input:
         merge_bams_input
     output:
-        bam = temp("results/{refGenome}/bams/postMerge/{sample}.bam"),
-        bai = temp("results/{refGenome}/bams/postMerge/{sample}.bam.bai")
+        bam = "results/{refGenome}/bams/postMerge/{sample}.bam",
+        bai = "results/{refGenome}/bams/postMerge/{sample}.bam.bai"
     conda:
         "../envs/fastq2bam.yml"
     log:
@@ -37,8 +37,8 @@ rule dedup:
     input:
         unpack(dedup_input)
     output:
-        dedupBam = temp("results/{refGenome}/bams/{sample}_final.bam"),
-        dedupBai = temp("results/{refGenome}/bams/{sample}_final.bam.bai")
+        dedupBam = "results/{refGenome}/bams/{sample}_final.bam",
+        dedupBai = "results/{refGenome}/bams/{sample}_final.bam.bai"
     conda:
         "../envs/sambamba.yml"
     log:
