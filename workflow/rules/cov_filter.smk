@@ -1,7 +1,6 @@
 rule compute_d4:
     input:
-        bam = "results/{refGenome}/bams/{sample}_final.bam",
-        bai = "results/{refGenome}/bams/{sample}_final.bam.bai",
+        unpack(get_bams)
     output:
         "results/{refGenome}/callable_sites/{sample}.mosdepth.global.dist.txt",
         temp("results/{refGenome}/callable_sites/{sample}.per-base.d4"),
@@ -12,12 +11,8 @@ rule compute_d4:
         "logs/{refGenome}/compute_d4/{sample}.txt"
     benchmark:
         "benchmarks/{refGenome}/compute_d4/{sample}.txt"
-    resources:
-        mem_mb = lambda wildcards, attempt: attempt * resources['compute_d4']['mem']
-    threads:
-        resources['compute_d4']['threads']
     params:
-        prefix = os.path.join(workflow.default_remote_prefix, "results/{refGenome}/callable_sites/{sample}")
+        prefix = os.path.join(DEFAULT_STORAGE_PREFIX, "results/{refGenome}/callable_sites/{sample}")
     shell:
         "mosdepth --d4 -t {threads} {params.prefix} {input.bam} &> {log}"
 
@@ -32,8 +27,6 @@ rule merge_d4:
         "logs/{refGenome}/merge_d4/log.txt"
     benchmark:
         "benchmarks/{refGenome}/merge_d4/benchmark.txt"
-    resources:
-        mem_mb = lambda wildcards, attempt: attempt * resources['merge_d4']['mem']
     shell:
         "d4tools merge {input.d4files} {output} &> {log}"
 
@@ -64,8 +57,6 @@ rule create_cov_bed:
         cov_threshold_rel = config["cov_threshold_rel"]
     conda:
         "../envs/cov_filter.yml"
-    resources:
-        mem_mb = lambda wildcards, attempt: attempt * resources['callable_bed']['mem']
     script:
         "../scripts/create_coverage_bed.py"
 
@@ -80,8 +71,6 @@ rule callable_bed:
         "../envs/cov_filter.yml"
     benchmark:
         "benchmarks/{refGenome}/callable_bed/{prefix}_benchmark.txt"
-    resources:
-        mem_mb = lambda wildcards, attempt: attempt * resources['callable_bed']['mem']
     params:
         merge = config['cov_merge']
     shell:

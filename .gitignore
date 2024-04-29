@@ -42,5 +42,11 @@ tmp/
 .test/ci/results
 .test/ci/benchmarks
 .test/ci/logs
+<<<<<<< HEAD
 
 profiles/slurm/
+=======
+.vscode
+.test/trackhub/*.sizes
+.test/trackhub/out.log
+>>>>>>> upstream/main
