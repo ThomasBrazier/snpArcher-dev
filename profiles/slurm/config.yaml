@@ -6,8 +6,8 @@ retries: 3 # Retry jobs N times.
 
 # These resources will be applied to all rules. Can be overriden on a per-rule basis below.
 default-resources:
-  mem_mb_per_cpu: attempt * 10000
-  mem_mb_per_cpu_reduced: (attempt * 10000) * 0.9 # Mem allocated to java for GATK rules (tries to prevent OOM errors)
+  mem_mb_per_cpu: attempt * 4000
+  mem_mb_per_cpu_reduced: (attempt * 4000) * 0.9 # Mem allocated to java for GATK rules (tries to prevent OOM errors)
   slurm_partition: "ecobio"
   slurm_account: mbrault # Same as sbatch -A. Not all clusters use this.
   runtime: 5760 # In minutes

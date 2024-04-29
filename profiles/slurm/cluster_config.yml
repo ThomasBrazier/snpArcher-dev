@@ -1,6 +1,0 @@
-__default__:
-    partition: "genouest"
-    time: 345600
-    nodes: 1
-    mem: 16000
-    output: "logs/slurm/slurm-%j.out"
