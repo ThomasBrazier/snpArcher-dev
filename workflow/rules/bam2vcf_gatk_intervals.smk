@@ -212,3 +212,21 @@ rule sort_gatherVcfs:
         bcftools concat -D -a -Ou {input.vcfs} 2> {log}| bcftools sort -T {resources.tmpdir} -Oz -o {output.vcfFinal} - 2>> {log}
         tabix -p vcf {output.vcfFinal} 2>> {log}
         """
+
+rule raw_vs_filtered:
+    input:
+        vcf = "results/{refGenome}/{prefix}_raw.vcf.gz"
+    output:
+        raw_vs_filter = "results/{refGenome}/{prefix}_raw_vs_filter.txt"
+    conda:
+        "../envs/bcftools.yml"
+    shell:
+        """
+        filtered=$(bcftools view -H -i 'FILTER="."' {input} | wc -l)
+        raw=$(bcftools view -H {input} | wc -l)
+        ratio=$(echo "scale=2; ($filtered * 100) / $raw" | bc )
+        echo "Number of SNPs removed after hard filtering" > {output}
+        echo "TOTAL\t$raw" >> {output}
+        echo "FILTERED\t$filtered" >> {output}
+        echo "$ratio % kept SNPs" >> {output}
+        """

@@ -4,7 +4,7 @@ rule picard_intervals:
         fai = "results/{refGenome}/data/genome/{refGenome}.fna.fai",
         dictf = "results/{refGenome}/data/genome/{refGenome}.dict"
     output:
-        intervals = temp("results/{refGenome}/intervals/picard_interval_list.list")
+        intervals = "results/{refGenome}/intervals/picard_interval_list.list"
     params:
         minNmer = int(config['minNmer'])
     conda:
