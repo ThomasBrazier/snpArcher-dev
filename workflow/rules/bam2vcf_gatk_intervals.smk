@@ -27,7 +27,7 @@ rule bam2gvcf:
     shell:
         """
         gatk HaplotypeCaller \
-        --java-options -Xmx{resources.mem_mb_reduced}m \
+        --java-options -Xmx{resources.mem_mb_per_cpu_reduced}m \
         -R {input.ref} \
         -I {input.bam} \
         -O {output.gvcf} \
@@ -116,7 +116,7 @@ rule gvcf2DB:
         """
         export TILEDB_DISABLE_FILE_LOCKING=1
         gatk GenomicsDBImport \
-            --java-options '-Xmx{resources.mem_mb_reduced}m -Xms{resources.mem_mb_reduced}m' \
+            --java-options '-Xmx{resources.mem_mb_per_cpu_reduced}m -Xms{resources.mem_mb_per_cpu_reduced}m' \
             --genomicsdb-shared-posixfs-optimizations true \
             --batch-size 25 \
             --genomicsdb-workspace-path {output.db} \
@@ -156,7 +156,7 @@ rule DB2vcf:
         """
         tar -xf {input.db}
         gatk GenotypeGVCFs \
-            --java-options '-Xmx{resources.mem_mb_reduced}m -Xms{resources.mem_mb_reduced}m' \
+            --java-options '-Xmx{resources.mem_mb_per_cpu_reduced}m -Xms{resources.mem_mb_per_cpu_reduced}m' \
             -R {input.ref} \
             --heterozygosity {params.het} \
             --genomicsdb-shared-posixfs-optimizations true \

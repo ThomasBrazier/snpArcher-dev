@@ -29,7 +29,7 @@ rule mosdepth_summary:
     benchmark:
         "benchmarks/{refGenome}/mosdepth_summary/{sample}.txt"
     params:
-        prefix = os.path.join(workflow.default_remote_prefix, "results/{refGenome}/quantize/{sample}")
+        prefix = os.path.join("", "results/{refGenome}/quantize/{sample}")
     shell:
         "mosdepth --no-per-base -t {threads} {params.prefix} {input.bam}"
 
@@ -48,7 +48,7 @@ rule mosdepth_quantize:
     benchmark:
         "benchmarks/{refGenome}/mosdepth_quantize/{sample}.txt"
     params:
-        prefix = os.path.join(workflow.default_remote_prefix, "results/{refGenome}/quantize/{sample}"),
+        prefix = os.path.join("", "results/{refGenome}/quantize/{sample}"),
         lower = round(config["quantize_cov_threshold_lower"]),
         upper = round(config["quantize_cov_threshold_upper"]),
         sample_mean = lambda wildcards, input: get_mean_cov(input.summary),
