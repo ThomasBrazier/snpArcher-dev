@@ -5,20 +5,15 @@ rule bam2gvcf:
     TODO
     """
     input:
+        unpack(get_bams),
         ref = "results/{refGenome}/data/genome/{refGenome}.fna",
         indexes = expand("results/{{refGenome}}/data/genome/{{refGenome}}.fna.{ext}", ext=["sa", "pac", "bwt", "ann", "amb", "fai"]),
         dictf = "results/{refGenome}/data/genome/{refGenome}.dict",
-        bam = "results/{refGenome}/bams/{sample}_final.bam",
-        bai = "results/{refGenome}/bams/{sample}_final.bam.bai",
-        l = "results/{refGenome}/intervals/gvcf_intervals/{l}-scattered.interval_list"
+        l = "results/{refGenome}/intervals/gvcf_intervals/{l}-scattered.interval_list",
+        
     output:
         gvcf = "results/{refGenome}/interval_gvcfs/{sample}/{l}.raw.g.vcf.gz",
         gvcf_idx = "results/{refGenome}/interval_gvcfs/{sample}/{l}.raw.g.vcf.gz.tbi"
-    resources:
-        #!The -Xmx value the tool is run with should be less than the total amount of physical memory available by at least a few GB
-        # subtract that memory here
-        mem_mb = lambda wildcards, attempt: attempt * resources['bam2gvcf']['mem'],   # this is the overall memory requested
-        reduced = lambda wildcards, attempt: attempt * (resources['bam2gvcf']['mem'] - 3000)  # this is the maximum amount given to java
     log:
         "logs/{refGenome}/gatk_hc/{sample}/{l}.txt"
     benchmark:
@@ -30,34 +25,55 @@ rule bam2gvcf:
     conda:
         "../envs/bam2vcf.yml"
     shell:
-        "gatk HaplotypeCaller "
-        "--java-options \"-Xmx{resources.reduced}m\" "
-        "-R {input.ref} "
-        "-I {input.bam} "
-        "-O {output.gvcf} "
-        "-L {input.l} "
-        "-ploidy {params.ploidy} "
-        "--emit-ref-confidence GVCF --min-pruning {params.minPrun} --min-dangling-branch-length {params.minDang} &> {log}"
+        """
+        gatk HaplotypeCaller \
+        --java-options -Xmx{resources.mem_mb_reduced}m \
+        -R {input.ref} \
+        -I {input.bam} \
+        -O {output.gvcf} \
+        -L {input.l} \
+        -ploidy {params.ploidy} \
+        --emit-ref-confidence GVCF --min-pruning {params.minPrun} --min-dangling-branch-length {params.minDang} &> {log}
+        """
 
 rule concat_gvcfs:
     input:
         gvcfs = get_interval_gvcfs,
         tbis = get_interval_gvcfs_idx
     output:
-        gvcf = "results/{refGenome}/gvcfs/{sample}.g.vcf.gz",
-        tbi = "results/{refGenome}/gvcfs/{sample}.g.vcf.gz.tbi"
+        gvcf = temp("results/{refGenome}/gvcfs/{sample}.g.vcf.gz"),
+        tbi = temp("results/{refGenome}/gvcfs/{sample}.g.vcf.gz.tbi")
     log:
         "logs/{refGenome}/concat_gvcfs/{sample}.txt"
     benchmark:
         "benchmarks/{refGenome}/concat_gvcfs/{sample}.txt"
     resources:
-        mem_mb = lambda wildcards, attempt: attempt * resources['gatherVcfs']['mem'],   # this is the overall memory requested
         tmpdir = get_big_temp
     conda:
         "../envs/bcftools.yml"
     shell:
         """
         bcftools concat -D -a -Ou {input.gvcfs} | bcftools sort -T {resources.tmpdir} -Oz -o {output.gvcf} -
+        tabix -p vcf {output.gvcf}
+        """
+
+rule bcftools_norm:
+    input:
+        gvcf = "results/{refGenome}/gvcfs/{sample}.g.vcf.gz",
+    output:
+        gvcf = "results/{refGenome}/gvcfs_norm/{sample}.g.vcf.gz",
+        tbi = "results/{refGenome}/gvcfs_norm/{sample}.g.vcf.gz.tbi"
+    log:
+        "logs/{refGenome}/norm_gvcf/{sample}.txt"
+    benchmark:
+        "benchmarks/{refGenome}/norm_gvcf/{sample}.txt"
+    resources:
+        tmpdir = get_big_temp
+    conda:
+        "../envs/bcftools.yml"
+    shell:
+        """
+        bcftools norm -m +any -Oz -o {output.gvcf} {input.gvcf}
         tabix -p vcf {output.gvcf}
         """
 
@@ -77,7 +93,7 @@ rule create_db_mapfile:
 
 rule gvcf2DB:
     """
-    todo
+    Create GenomicsDB.
     """
     input:
         unpack(get_gvcfs_db),
@@ -86,15 +102,12 @@ rule gvcf2DB:
     output:
         db = temp(directory("results/{refGenome}/genomics_db_import/DB_L{l}")),
         tar = temp("results/{refGenome}/genomics_db_import/DB_L{l}.tar"),        
-    resources:
-        mem_mb = lambda wildcards, attempt: attempt * resources['gvcf2DB']['mem'],   # this is the overall memory requested
-        reduced = lambda wildcards, attempt: int(attempt * resources['gvcf2DB']['mem'] * 0.80) # this is the maximum amount given to java
     log:
         "logs/{refGenome}/gatk_db_import/{l}.txt"
-    resources:
-        tmpdir = get_big_temp
     benchmark:
         "benchmarks/{refGenome}/gatk_db_import/{l}.txt"
+    resources:
+        tmpdir = get_big_temp
     conda:
         "../envs/bam2vcf.yml"
     shell:
@@ -103,7 +116,7 @@ rule gvcf2DB:
         """
         export TILEDB_DISABLE_FILE_LOCKING=1
         gatk GenomicsDBImport \
-            --java-options '-Xmx{resources.reduced}m -Xms{resources.reduced}m' \
+            --java-options '-Xmx{resources.mem_mb_reduced}m -Xms{resources.mem_mb_reduced}m' \
             --genomicsdb-shared-posixfs-optimizations true \
             --batch-size 25 \
             --genomicsdb-workspace-path {output.db} \
@@ -112,7 +125,7 @@ rule gvcf2DB:
             --tmp-dir {resources.tmpdir} \
             --sample-name-map {input.db_mapfile} &> {log}
         
-        tar --overwrite -cf {output.tar} {output.db}
+        tar -cf {output.tar} {output.db}
         """
 
 rule DB2vcf:
@@ -132,8 +145,6 @@ rule DB2vcf:
         het = config['het_prior'],
         db = lambda wc, input: input.db[:-4]
     resources:
-        mem_mb = lambda wildcards, attempt: attempt * resources['DB2vcf']['mem'],   # this is the overall memory requested
-        reduced = lambda wildcards, attempt: attempt * (resources['DB2vcf']['mem'] - 3000),  # this is the maximum amount given to java
         tmpdir = get_big_temp
     log:
         "logs/{refGenome}/gatk_genotype_gvcfs/{l}.txt"
@@ -145,7 +156,7 @@ rule DB2vcf:
         """
         tar -xf {input.db}
         gatk GenotypeGVCFs \
-            --java-options '-Xmx{resources.reduced}m -Xms{resources.reduced}m' \
+            --java-options '-Xmx{resources.mem_mb_reduced}m -Xms{resources.mem_mb_reduced}m' \
             -R {input.ref} \
             --heterozygosity {params.het} \
             --genomicsdb-shared-posixfs-optimizations true \
@@ -169,8 +180,6 @@ rule filterVcfs:
         vcfidx = temp("results/{refGenome}/vcfs/intervals/filtered_L{l}.vcf.gz.tbi")
     conda:
         "../envs/bam2vcf.yml"
-    resources:
-        mem_mb = lambda wildcards, attempt: attempt * resources['filterVcfs']['mem']   # this is the overall memory requested
     log:
         "logs/{refGenome}/gatk_filter/{l}.txt"
     benchmark:
@@ -205,7 +214,6 @@ rule sort_gatherVcfs:
     benchmark:
         "benchmarks/{refGenome}/sort_gather_vcfs/{prefix}_benchmark.txt"
     resources:
-        mem_mb = lambda wildcards, attempt: attempt * resources['gatherVcfs']['mem'],   # this is the overall memory requested
         tmpdir = get_big_temp
     shell:
         """
