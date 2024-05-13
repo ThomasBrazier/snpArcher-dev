@@ -3,15 +3,12 @@ rule get_fastq_pe:
         temp("results/data/fastq/{refGenome}/{sample}/{run}_1.fastq.gz"),
         temp("results/data/fastq/{refGenome}/{sample}/{run}_2.fastq.gz")
     params:
-        outdir = os.path.join(workflow.default_remote_prefix, "results/data/fastq/{refGenome}/{sample}/")
+        outdir = os.path.join(DEFAULT_STORAGE_PREFIX, "results/data/fastq/{refGenome}/{sample}/")
     conda:
         "../envs/fastq2bam.yml"
-    threads:
-        resources['get_fastq_pe']['threads']
     benchmark:
         "benchmarks/{refGenome}/getfastq/{sample}_{run}.txt"
     resources:
-        mem_mb = lambda wildcards, attempt: attempt * resources['get_fastq_pe']['mem'],
         tmpdir = get_big_temp
     shell:
         """
@@ -40,18 +37,34 @@ rule fastp:
         summ = "results/{refGenome}/summary_stats/{sample}/{run}.fastp.out"
     conda:
         "../envs/fastq2bam.yml"
-    threads:
-        resources['fastp']['threads']
-    resources:
-        mem_mb = lambda wildcards, attempt: attempt * resources['fastp']['mem'],
     log:
         "logs/{refGenome}/fastp/{sample}/{run}.txt"
     benchmark:
         "benchmarks/{refGenome}/fastp/{sample}_{run}.txt"
+    params:
+        sort_reads = config['sort_reads']
     shell:
-        "fastp --in1 {input.r1} --in2 {input.r2} "
-        "--out1 {output.r1} --out2 {output.r2} "
-        "--thread {threads} "
-        "--detect_adapter_for_pe "
-        "-j /dev/null -h /dev/null "
-        "2> {output.summ} > {log}"
+        """
+        if [ {params.sort_reads} = "True" ]; then
+        
+            sortbyname.sh in={input.r1} out={wildcards.run}_sorted_R1.fastq.gz
+            sortbyname.sh in={input.r2} out={wildcards.run}_sorted_R2.fastq.gz
+
+            fastp --in1 {wildcards.run}_sorted_R1.fastq.gz --in2 {wildcards.run}_sorted_R2.fastq.gz \
+            --out1 {output.r1} --out2 {output.r2} \
+            --thread {threads} \
+            --detect_adapter_for_pe \
+            -j {output.summ} -h /dev/null \
+            &>{log}
+
+            rm {wildcards.run}_sorted_R1.fastq.gz
+            rm {wildcards.run}_sorted_R2.fastq.gz
+        else
+            fastp --in1 {input.r1} --in2 {input.r2} \
+            --out1 {output.r1} --out2 {output.r2} \
+            --thread {threads} \
+            --detect_adapter_for_pe \
+            -j {output.summ} -h /dev/null \
+            &>{log}
+        fi
+        """

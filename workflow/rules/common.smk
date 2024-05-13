@@ -1,26 +1,31 @@
-import glob
-import re
-import os
 import sys
+import os
 import tempfile
 import random
 import string
 import statistics
+import json
+from pathlib import Path
 from collections import defaultdict
-from urllib.request import urlopen
-import pandas as pd
-from yaml import safe_load
-from collections import defaultdict, deque
-from snakemake.exceptions import WorkflowError
 
-samples = pd.read_table(config["samples"], sep=",", dtype=str).replace(
-    " ", "_", regex=True
-)
-with open(config["resource_config"], "r") as f:
-    resources = safe_load(f)
+import pandas as pd
+import snparcher_utils
+from yaml import safe_load
+from pkg_resources import parse_version
+
+# Can't be less than 7 cuz of min version in snakefile
+SNAKEMAKE_VERSION = 8 if parse_version(snakemake.__version__) >= parse_version("8.0.0") else 7
+logger.warning(f"snpArcher: Using Snakemake {snakemake.__version__}")
+if SNAKEMAKE_VERSION >= 8:
+    DEFAULT_STORAGE_PREFIX = StorageSettings.default_storage_prefix if StorageSettings.default_storage_prefix is not None else ""
+else:
+    DEFAULT_STORAGE_PREFIX = workflow.default_remote_prefix
+
+samples = snparcher_utils.parse_sample_sheet(config)
 
 
 def get_output():
+    
     if config["final_prefix"] == "":
         raise (WorkflowError("'final_prefix' is not set in config."))
     out = []
@@ -31,7 +36,21 @@ def get_output():
         subset=["refGenome"]
     )  # get BioSample for each refGenome
     out.extend
+    if config["final_prefix"] == "":
+        raise (WorkflowError("'final_prefix' is not set in config."))
+    out = []
+    
+    sample_counts = samples.drop_duplicates(
+        subset=["BioSample", "refGenome"]
+    ).value_counts(
+        subset=["refGenome"]
+    )  # get BioSample for each refGenome
+    
     for ref in genomes:
+        # Workaround for Snakemake issue 2762. There is problem with running nested checkpoints in snakemake8. Adding mapfile in rule all forces gvcf interval checkpoint to run.
+        # This is actually kind of a good thing to do since it makes dryrun more clear (shows all bam>gvcf jobs now).
+        if not config["sentieon"]:
+            out.extend(expand("results/{refGenome}/genomics_db_import/DB_mapfile.txt", refGenome=ref))
         out.extend(
             expand( "results/{refGenome}/{prefix}_raw.vcf.gz",refGenome=ref, prefix=config["final_prefix"]))
         out.extend(
@@ -67,27 +86,62 @@ def merge_bams_input(wc):
         run=samples.loc[samples["BioSample"] == wc.sample]["Run"].tolist(),
     )
 
+def setup_curlrc():
+    curlrc_path = Path("~/.curlrc").expanduser()
+    marker = "# Added by snpArcher"
+    entry = f"-L {marker}\n"
+    if curlrc_path.exists():
+        with curlrc_path.open("r+") as f:
+            if "-L" not in f.read():
+                f.write(f"\n{entry}\n")
+                logger.info(f"Added -L to {curlrc_path} for pyd4")
+            
+    else:
+        with curlrc_path.open("a+") as f:
+            f.write(f"{entry}\n")
+
+def cleanup_curlrc():
+    curlrc_path = Path("~/.curlrc").expanduser()
+    marker = "# Added by snpArcher"
+    entry = f"-L {marker}\n"
+    logger.info(f"Removing -L we added from {curlrc_path}...")
+    if curlrc_path.exists():
+        with curlrc_path.open("r") as f:
+            lines = f.readlines()
+            # remove entry if its there
+            new_lines = [line for line in lines if line.strip() != entry.strip()]
+            if len(new_lines) == 0:
+                # our entry was only thing there, we can delete .curlrc
+                curlrc_path.unlink()
+            else:
+            # write back any options that were there.
+                with curlrc_path.open("w") as f:
+                    f.writelines(new_lines)
 
 def get_ref(wildcards):
+    
     if "refPath" in samples.columns:
         _refs = (
             samples.loc[(samples["refGenome"] == wildcards.refGenome)]["refPath"]
             .dropna()
             .unique()
             .tolist()
-        )
-        for ref in _refs:
-            if workflow.default_remote_prefix == "":
-                if not os.path.exists(ref):
-                    raise WorkflowError(f"Reference genome {ref} does not exist")
-                elif ref.rsplit(".", 1)[1] == ".gz":
-                    raise WorkflowError(
-                        f"Reference genome {ref} must be unzipped first."
-                    )
-        return _refs
-    else:
-        return []
+        )             
+        if _refs:
+            return _refs
+    # if not user-specified refpath, force MissingInputError in copy_ref with dummyfile, which allows download_ref to run b/c of ruleorder.
+    logger.warning(f"snpArcher: refPath specified in sample sheet header, but no path provided for refGenome '{wildcards.refGenome}'\n" + 
+                    f"Will try to download '{wildcards.refGenome}' from NCBI. If this is a genome accession, you can ignore this warning.")
+    return []
 
+def get_bams(wc):
+    out = {"bam": None, "bai": None}
+    if config["mark_duplicates"]:
+        out["bam"] = "results/{refGenome}/bams/{sample}_final.bam"
+        out["bai"] = "results/{refGenome}/bams/{sample}_final.bam.bai"
+        return out
+    else:
+        return dedup_input(wc)
 
 def sentieon_combine_gvcf_cmd_line(wc):
     gvcfs = sentieon_combine_gvcf_input(wc)["gvcfs"]
@@ -169,37 +223,39 @@ def sentieon_combine_gvcf_input(wc):
 
 def get_reads(wc):
     """Returns local read files if present. Defaults to SRR if no local reads in sample sheet."""
-    if config["remote_reads"]:
-        return get_remote_reads(wc)
-    else:
-        row = samples.loc[samples["Run"] == wc.run]
-        r1 = f"results/data/fastq/{wc.refGenome}/{wc.sample}/{wc.run}_1.fastq.gz"
-        r2 = f"results/data/fastq/{wc.refGenome}/{wc.sample}/{wc.run}_2.fastq.gz"
-        if "fq1" in samples.columns and "fq2" in samples.columns:
-            if row["fq1"].notnull().any() and row["fq2"].notnull().any():
-                if os.path.exists(row.fq1.item()) and os.path.exists(row.fq2.item()):
-                    r1 = row.fq1.item()
-                    r2 = row.fq2.item()
-
-                    return {"r1": r1, "r2": r2}
+    row = samples.loc[samples["Run"] == wc.run]
+    r1 = f"results/data/fastq/{wc.refGenome}/{wc.sample}/{wc.run}_1.fastq.gz"
+    r2 = f"results/data/fastq/{wc.refGenome}/{wc.sample}/{wc.run}_2.fastq.gz"
+    if "fq1" in samples.columns and "fq2" in samples.columns:
+        if row["fq1"].notnull().any() and row["fq2"].notnull().any():
+            r1 = row.fq1.item()
+            r2 = row.fq2.item()
+            if config["remote_reads"]:
+                if SNAKEMAKE_VERSION>=8:
+                    # remote read path must have full remote prefix, eg: gs://reads_bucket/sample1/...
+                    # depends on snakemake>8 to figure out proper remote provider from prefix using storage()
+                    return {"r1": storage(r1), "r2": storage(r2)}
                 else:
-                    raise WorkflowError(
-                        f"fq1 and fq2 specified for {wc.sample}, but files were not found."
-                    )
-            else:
+                    return get_remote_reads(wc)
+            if os.path.exists(row.fq1.item()) and os.path.exists(row.fq2.item()):
                 return {"r1": r1, "r2": r2}
+            else:
+                raise WorkflowError(
+                    f"fq1 and fq2 specified for {wc.sample}, but files were not found."
+                )
         else:
+            # this allows mixed srr and user-specified paths for reads
             return {"r1": r1, "r2": r2}
-
+    else:
+        return {"r1": r1, "r2": r2}
 
 def get_remote_reads(wildcards):
-    """Use this for reads on a different remote bucket than the default."""
+    """Use this for reads on a different remote bucket than the default. For backwards compatibility."""
     # print(wildcards)
     row = samples.loc[samples["Run"] == wildcards.run]
     r1 = GS.remote(os.path.join(GS_READS_PREFIX, row.fq1.item()))
     r2 = GS.remote(os.path.join(GS_READS_PREFIX, row.fq2.item()))
     return {"r1": r1, "r2": r2}
-
 
 def collect_fastp_stats_input(wc):
     return expand(
@@ -249,7 +305,7 @@ def get_input_sumstats(wildcards):
 
 def get_input_for_mapfile(wildcards):
     sample_names = samples.loc[(samples["refGenome"] == wildcards.refGenome)]["BioSample"].unique().tolist()
-    return expand("results/{{refGenome}}/gvcfs/{sample}.g.vcf.gz", sample=sample_names)
+    return expand("results/{{refGenome}}/gvcfs_norm/{sample}.g.vcf.gz", sample=sample_names)
 
 
 def get_input_for_coverage(wildcards):
@@ -369,21 +425,12 @@ def collectFastpOutput(fastpFiles):
     for fn in fastpFiles:
         sample = os.path.basename(fn)
         sample = sample.replace("_fastp.out", "")
-        unfiltered = 0
-        pass_filter = 0
-        f = open(fn, "r")
-        for line in f:
-            if "before filtering" in line:
-                line = next(f)
-                line = line.split()
-                unfiltered += int(line[2])
-
-            if "Filtering result" in line:
-                line = next(f)
-                line = line.split()
-                pass_filter += int(line[3])
-
-        f.close()
+        
+        
+        with open(fn, "r") as f:
+            data = json.load(f)
+        unfiltered = data["summary"]["before_filtering"]["total_reads"]
+        pass_filter = data["summary"]["after_filtering"]["total_reads"]
         FractionReadsPassFilter[sample] = float(pass_filter / unfiltered)
         NumReadsPassFilter[sample] = pass_filter
 
