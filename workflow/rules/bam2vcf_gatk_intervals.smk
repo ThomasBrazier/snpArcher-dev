@@ -27,7 +27,7 @@ rule bam2gvcf:
     shell:
         """
         gatk HaplotypeCaller \
-        --java-options -Xmx{resources.mem_mb_per_cpu_reduced}m \
+        --java-options -Xmx{resources.mem_mb_reduced}m \
         -R {input.ref} \
         -I {input.bam} \
         -O {output.gvcf} \
@@ -101,7 +101,7 @@ rule gvcf2DB:
         db_mapfile = "results/{refGenome}/genomics_db_import/DB_mapfile.txt"
     output:
         db = temp(directory("results/{refGenome}/genomics_db_import/DB_L{l}")),
-        tar = temp("results/{refGenome}/genomics_db_import/DB_L{l}.tar"),        
+        tar = temp("results/{refGenome}/genomics_db_import/DB_L{l}.tar"),
     log:
         "logs/{refGenome}/gatk_db_import/{l}.txt"
     benchmark:
@@ -116,7 +116,7 @@ rule gvcf2DB:
         """
         export TILEDB_DISABLE_FILE_LOCKING=1
         gatk GenomicsDBImport \
-            --java-options '-Xmx{resources.mem_mb_per_cpu_reduced}m -Xms{resources.mem_mb_per_cpu_reduced}m' \
+            --java-options '-Xmx{resources.mem_mb_reduced}m -Xms{resources.mem_mb_reduced}m' \
             --genomicsdb-shared-posixfs-optimizations true \
             --batch-size 25 \
             --genomicsdb-workspace-path {output.db} \
@@ -156,7 +156,7 @@ rule DB2vcf:
         """
         tar -xf {input.db}
         gatk GenotypeGVCFs \
-            --java-options '-Xmx{resources.mem_mb_per_cpu_reduced}m -Xms{resources.mem_mb_per_cpu_reduced}m' \
+            --java-options '-Xmx{resources.mem_mb_reduced}m -Xms{resources.mem_mb_reduced}m' \
             -R {input.ref} \
             --heterozygosity {params.het} \
             --genomicsdb-shared-posixfs-optimizations true \
@@ -219,22 +219,4 @@ rule sort_gatherVcfs:
         """
         bcftools concat -D -a -Ou {input.vcfs} 2> {log}| bcftools sort -T {resources.tmpdir} -Oz -o {output.vcfFinal} - 2>> {log}
         tabix -p vcf {output.vcfFinal} 2>> {log}
-        """
-
-rule raw_vs_filtered:
-    input:
-        vcf = "results/{refGenome}/{prefix}_raw.vcf.gz"
-    output:
-        raw_vs_filter = "results/{refGenome}/{prefix}_raw_vs_filter.txt"
-    conda:
-        "../envs/bcftools.yml"
-    shell:
-        """
-        filtered=$(bcftools view -H -i 'FILTER="."' {input} | wc -l)
-        raw=$(bcftools view -H {input} | wc -l)
-        ratio=$(echo "scale=2; ($filtered * 100) / $raw" | bc )
-        echo "Number of SNPs removed after hard filtering" > {output}
-        echo "TOTAL\t$raw" >> {output}
-        echo "FILTERED\t$filtered" >> {output}
-        echo "$ratio % kept SNPs" >> {output}
         """

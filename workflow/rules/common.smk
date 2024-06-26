@@ -57,9 +57,6 @@ def get_output():
             expand( "results/{refGenome}/summary_stats/{prefix}_bam_sumstats.txt", refGenome=ref, prefix=config["final_prefix"]))
         out.extend(
             expand("results/{refGenome}/{prefix}_callable_sites.bed", refGenome=ref, prefix=config["final_prefix"]))
-        if config["compare_hardfilter"]:
-            out.extend(
-            expand("results/{refGenome}/{prefix}_raw_vs_filter.txt", refGenome=ref, prefix=config["final_prefix"]))
         if config["quantize_cov_filter"]:
             out.append(rules.quantize_coverage_all.input)
         if sample_counts[ref] > 2:
