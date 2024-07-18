@@ -13,7 +13,7 @@ This is a fork of the original SNPArcher to add new features, including:
 * the `quantize_cov` module implementing the mosdepth quantize method as in Laetsch et al. (2023)
 
 
-### Test
+### Install
 
 ```
 conda activate snakemake
@@ -31,6 +31,19 @@ Run the analyses from the snpArcher directory with :
 ```
 snakemake --snakefile workflow/Snakefile --use-conda --cores <number of cores> --printshellcmds -d <your working directory>/<your dataset>/
 ```
+
+
+
+## New Features and Development
+
+
+### Module Quantize_cov
+
+
+
+### Module Paralogs
+
+
 
 
 
