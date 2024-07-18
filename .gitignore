@@ -45,3 +45,5 @@ tmp/
 .vscode
 .test/trackhub/*.sizes
 .test/trackhub/out.log
+
+profiles/slurm/

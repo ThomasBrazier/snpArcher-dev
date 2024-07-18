@@ -25,7 +25,7 @@ def get_mean_cov(summary_file):
 def get_sample_names(wildcards):
 
     _samples = samples.loc[(samples["refGenome"] == wildcards.refGenome)]["BioSample"].unique().tolist()
-    names = ",".join(_samples)
+    names = " ".join(_samples)
     
     return names
 

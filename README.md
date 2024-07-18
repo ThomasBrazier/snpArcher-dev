@@ -13,6 +13,13 @@ This is a fork of the original SNPArcher to add new features, including:
 * the `quantize_cov` module implementing the mosdepth quantize method as in Laetsch et al. (2023)
 
 
+### Install
+
+```
+conda activate snakemake
+snakemake -d .test/ecoli --cores 1 --use-conda
+```
+
 ### Usage
 
 You first need to make a working directory, either within or outside the snpArcher directory.
@@ -24,6 +31,19 @@ Run the analyses from the snpArcher directory with :
 ```
 snakemake --snakefile workflow/Snakefile --use-conda --cores <number of cores> --printshellcmds -d <your working directory>/<your dataset>/
 ```
+
+
+
+## New Features and Development
+
+
+### Module Quantize_cov
+
+
+
+### Module Paralogs
+
+
 
 
 

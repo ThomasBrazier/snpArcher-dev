@@ -29,7 +29,7 @@ rule mosdepth_summary:
     benchmark:
         "benchmarks/{refGenome}/mosdepth_summary/{sample}.txt"
     params:
-        prefix = os.path.join(workflow.default_remote_prefix, "results/{refGenome}/quantize/{sample}")
+        prefix = os.path.join("", "results/{refGenome}/quantize/{sample}")
     shell:
         "mosdepth --no-per-base -t {threads} {params.prefix} {input.bam}"
 
@@ -48,7 +48,7 @@ rule mosdepth_quantize:
     benchmark:
         "benchmarks/{refGenome}/mosdepth_quantize/{sample}.txt"
     params:
-        prefix = os.path.join(workflow.default_remote_prefix, "results/{refGenome}/quantize/{sample}"),
+        prefix = os.path.join("", "results/{refGenome}/quantize/{sample}"),
         lower = round(config["quantize_cov_threshold_lower"]),
         upper = round(config["quantize_cov_threshold_upper"]),
         sample_mean = lambda wildcards, input: get_mean_cov(input.summary),
@@ -88,7 +88,7 @@ rule callable_bed_all_samples:
         """
         if [ {params.n_samples} -gt 1 ];
         then
-        bedtools multiinter -names {params.names} {input.callable_beds} > {output.callable_bed_all}
+        bedtools multiinter -names {params.names} -i {input.callable_beds} | cut -f 1,2,3,4,5 > {output.callable_bed_all}
         else
         cat {input.callable_beds} > {output.callable_bed_all}
         fi
@@ -104,4 +104,4 @@ rule add_mappability:
     conda:
         "envs/cov_quantize.yml"
     shell:
-        "bedtools intersect -a {input.callable_bed_all} -b {input.map_all} | bedtools sort | bedtools merge > {output.callable_mappable_all}"
+        "cat {input.callable_bed_all} | cut -f 1,2,3 | bedtools intersect -a - -b {input.map_all} | bedtools sort -i - | bedtools merge -i - > {output.callable_mappable_all}"
