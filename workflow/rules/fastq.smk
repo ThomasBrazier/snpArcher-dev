@@ -1,7 +1,7 @@
 rule get_fastq_pe:
     output:
-        temp("results/data/fastq/{refGenome}/{sample}/{run}_1.fastq.gz"),
-        temp("results/data/fastq/{refGenome}/{sample}/{run}_2.fastq.gz")
+        "results/data/fastq/{refGenome}/{sample}/{run}_1.fastq.gz",
+        "results/data/fastq/{refGenome}/{sample}/{run}_2.fastq.gz"
     params:
         outdir = os.path.join(DEFAULT_STORAGE_PREFIX, "results/data/fastq/{refGenome}/{sample}/")
     conda:
@@ -22,8 +22,9 @@ rule get_fastq_pe:
         then
             ffq --ftp {wildcards.run} | grep -Eo '"url": "[^"]*"' | grep -o '"[^"]*"$' | grep "fastq" | xargs curl --remote-name-all --output-dir {params.outdir}
         else
-            fasterq-dump {wildcards.run} -O {params.outdir} -e {threads} -t {resources.tmpdir}
-            pigz -p {threads} {params.outdir}{wildcards.run}*.fastq
+            parallel-fastq-dump --sra-id {wildcards.run} --outdir {params.outdir} --threads {threads} --split-files --gzip
+            #fasterq-dump {wildcards.run} -O {params.outdir} -e {threads} -t {resources.tmpdir}
+            #pigz -p {threads} {params.outdir}{wildcards.run}*.fastq
         fi
         rm -rf {wildcards.run}
         """
@@ -32,8 +33,8 @@ rule fastp:
     input:
         unpack(get_reads)
     output:
-        r1 = temp("results/{refGenome}/filtered_fastqs/{sample}/{run}_1.fastq.gz"),
-        r2 = temp("results/{refGenome}/filtered_fastqs/{sample}/{run}_2.fastq.gz"),
+        r1 = "results/{refGenome}/filtered_fastqs/{sample}/{run}_1.fastq.gz",
+        r2 = "results/{refGenome}/filtered_fastqs/{sample}/{run}_2.fastq.gz",
         summ = "results/{refGenome}/summary_stats/{sample}/{run}.fastp.out"
     conda:
         "../envs/fastq2bam.yml"

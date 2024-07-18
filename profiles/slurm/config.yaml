@@ -1,17 +1,16 @@
 executor: slurm
 use-conda: True
-jobs: 100 # Have up to N jobs submitted at any given time
-latency-wait: 100 # Wait N seconds for output files due to latency
-retries: 0 # Retry jobs N times.
+jobs: 50 # Have up to N jobs submitted at any given time
+latency-wait: 200 # Wait N seconds for output files due to latency
+retries: 3 # Retry jobs N times.
 
 # These resources will be applied to all rules. Can be overriden on a per-rule basis below.
 default-resources:
   mem_mb: attempt * 2000
   mem_mb_reduced: (attempt * 2000) * 0.9 # Mem allocated to java for GATK rules (tries to prevent OOM errors)
-  slurm_partition: ""
-  slurm_account: # Same as sbatch -A. Not all clusters use this.
-  runtime: 30 # In minutes 
-
+  slurm_partition: "ecobio"  
+  slurm_account: mbrault # Same as sbatch -A. Not all clusters use this.
+  runtime: 240 # (In minutes)
 
 # Control number of threads each rule will use.
 set-threads:
@@ -24,27 +23,27 @@ set-threads:
   create_db_intervals: 1
   picard_intervals: 1
   # Mappability
-  genmap: 1 # Can use more than 1 thread
+  genmap: 2 # Can use more than 1 thread
   mappability_bed: 1 # Does NOT use more than 1 thread
   # Fastq Processing. Can use more than 1 thread.
-  get_fastq_pe: 1 
-  fastp: 1
+  get_fastq_pe: 4
+  fastp: 4
   # Alignment. Can use more than 1 thread, except merge_bams.
-  bwa_map: 1
-  dedup: 1
+  bwa_map: 4
+  dedup: 4
   merge_bams: 1 # Does NOT use more than 1 thread.
   # GVCF 
-  bam2gvcf: 1 # Should be run with no more than 2 threads.
+  bam2gvcf: 2 # Should be run with no more than 2 threads.
   concat_gvcfs: 1 # Does NOT use more than 1 thread.
   bcftools_norm: 1 # Does NOT use more than 1 thread.
   create_db_mapfile: 1 # Does NOT use more than 1 thread.
-  gvcf2DB: 1 # Should be run with no more than 2 threads.
+  gvcf2DB: 2 # Should be run with no more than 2 threads.
   # VCF
-  DB2vcf: 1 # Should be run with no more than 2 threads.
-  filterVcfs: 1 # Should be run with no more than 2 threads.
-  sort_gatherVcfs: 1 # Should be run with no more than 2 threads.
+  DB2vcf: 2 # Should be run with no more than 2 threads.
+  filterVcfs: 2 # Should be run with no more than 2 threads.
+  sort_gatherVcfs: 2 # Should be run with no more than 2 threads.
   # Callable Bed
-  compute_d4: 1 # Can use more than 1 thread
+  compute_d4: 2 # Can use more than 1 thread
   create_cov_bed: 1 # Does NOT use more than 1 thread.
   merge_d4: 1 # Does NOT use more than 1 thread.
   # Summary Stats Does NOT use more than 1 thread.
@@ -91,7 +90,7 @@ set-threads:
   sentieon_bam_stats: 1 # Does NOT use more than 1 thread.
 
 # Control other resources used by each rule.
-# set-resources:
+set-resources:
 #   # Reference Genome Processing
 #   copy_reference:
 #     mem_mb: attempt * 2000
@@ -144,81 +143,82 @@ set-threads:
 #     cpus_per_task:
   
 #   # Fastq Processing
-#   get_fastq_pe:
-#     mem_mb: attempt * 2000
-#     slurm_partition:
-#     runtime:
-#     cpus_per_task:
-#   fastp:
-#     mem_mb: attempt * 2000
-#     slurm_partition:
-#     runtime:
-#     cpus_per_task:
+  get_fastq_pe:
+    mem_mb: attempt * 500
+    slurm_partition: "genouest"
+    runtime: 720
+    cpus_per_task: 8
+  fastp:
+    mem_mb: attempt * 4000
+    slurm_partition: "ecobio"
+    runtime: 240
+    cpus_per_task: 4
 
 #   # Alignment  
-#   bwa_map:
-#     mem_mb: attempt * 2000
-#     slurm_partition:
-#     runtime:
-#     cpus_per_task:
-#   dedup:
-#     mem_mb: attempt * 2000
-#     slurm_partition:
-#     runtime:
-#     cpus_per_task:
+  bwa_map:
+    mem_mb: attempt * 6000
+    slurm_partition: "ecobio"
+    runtime: 5760
+    cpus_per_task: 4
+  dedup:
+    mem_mb: attempt * 6000
+    slurm_partition: "ecobio"
+    runtime: 420
+    cpus_per_task: 4
 #   merge_bams:
 #     mem_mb: attempt * 2000
 #     slurm_partition:
 #     runtime:
 #     cpus_per_task:
 
-#   # GVCF  
-#   bam2gvcf: # HaplotypeCaller
-#     mem_mb: attempt * 2000
-#     mem_mb_reduced: (attempt * 2000) * 0.9 # Mem allocated to java (tries to prevent OOM errors)
-#     slurm_partition:
-#     runtime:
-#     cpus_per_task: # Mem allocated to the snakemake job
-#   concat_gvcfs:
-#     mem_mb: attempt * 2000
-#     slurm_partition:
-#     runtime:
-#     cpus_per_task:
-#   bcftools_norm:
-#     mem_mb: attempt * 2000
-#     slurm_partition:
-#     runtime:
-#     cpus_per_task:
-#   create_db_mapfile:
-#     mem_mb: attempt * 2000
-#     slurm_partition:
-#     runtime:
-#     cpus_per_task:
-#   gvcf2DB: # GenomicsDBImport
-#     mem_mb: attempt * 2000
-#     mem_mb_reduced: (attempt * 2000) * 0.9 # Mem allocated to java (tries to prevent OOM errors)
-#     slurm_partition:
-#     runtime:
-#     cpus_per_task:
-    
-#   # VCF
-#   DB2vcf: # GenotypeGVCFs
-#     mem_mb: attempt * 2000
-#     mem_mb_reduced: (attempt * 2000) * 0.9 # Mem allocated to java (tries to prevent OOM errors)
-#     slurm_partition:
-#     runtime:
-#     cpus_per_task:
+  # GVCF  
+  bam2gvcf: # HaplotypeCaller
+    mem_mb: attempt * 35000
+    mem_mb_reduced: (attempt * 35000) * 0.9
+    slurm_partition: "ecobio"
+    runtime: 720
+    cpus_per_task: 1
+#  concat_gvcfs:
+#    mem_mb: attempt * 2000
+#    mem_mb_reduced: (attempt * 2000) * 0.9
+#    slurm_partition: "ecobio"
+#    runtime: 120
+#    cpus_per_task: 1
+#  bcftools_norm:
+#    mem_mb: attempt * 100000
+#    slurm_partition: "ecobio,bigmem"
+#    runtime: 5760
+#    cpus_per_task: 1
+#  create_db_mapfile:
+#    mem_mb: attempt * 100000
+#    slurm_partition: "ecobio,bigmem"
+#    runtime: 5760
+#    cpus_per_task: 1
+  gvcf2DB: # GenomicsDBImport
+    mem_mb: attempt * 35000
+    mem_mb_reduced: (attempt * 35000) * 0.9
+    slurm_partition: "ecobio"
+    runtime: 120
+    cpus_per_task: 1
 
-#   filterVcfs:
-#     mem_mb: attempt * 2000
-#     slurm_partition:
-#     runtime:
-#     cpus_per_task:
-#   sort_gatherVcfs:
-#     mem_mb: attempt * 2000
-#     slurm_partition:
-#     runtime:
-#     cpus_per_task:
+  # VCF
+  DB2vcf: # GenotypeGVCFs
+    mem_mb: attempt * 35000
+    mem_mb_reduced: (attempt * 35000) * 0.9 # Mem allocated to java (tries to prevent OOM errors)
+    slurm_partition: "ecobio"
+    runtime: 120
+    cpus_per_task: 1
+
+#  filterVcfs:
+#    mem_mb: attempt * 2000
+#    slurm_partition:
+#    runtime: 120
+#    cpus_per_task: 1
+  sort_gatherVcfs:
+    mem_mb: attempt * 5000
+    slurm_partition: "ecobio"
+    runtime: 240
+    cpus_per_task: 2
 
 #   # Callable Bed  
 #   compute_d4:
@@ -226,11 +226,11 @@ set-threads:
 #     slurm_partition:
 #     runtime:
 #     cpus_per_task:
-#   create_cov_bed:
-#     mem_mb: attempt * 2000
-#     slurm_partition:
-#     runtime:
-#     cpus_per_task:
+  create_cov_bed:
+    mem_mb: attempt * 2000
+    slurm_partition: "ecobio"
+    runtime: 360
+    cpus_per_task: 1
 #   merge_d4:
 #     mem_mb: attempt * 2000
 #     slurm_partition:

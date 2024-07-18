@@ -101,7 +101,7 @@ rule gvcf2DB:
         db_mapfile = "results/{refGenome}/genomics_db_import/DB_mapfile.txt"
     output:
         db = temp(directory("results/{refGenome}/genomics_db_import/DB_L{l}")),
-        tar = temp("results/{refGenome}/genomics_db_import/DB_L{l}.tar"),        
+        tar = temp("results/{refGenome}/genomics_db_import/DB_L{l}.tar"),
     log:
         "logs/{refGenome}/gatk_db_import/{l}.txt"
     benchmark:
