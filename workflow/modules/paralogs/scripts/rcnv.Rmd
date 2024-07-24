@@ -5,6 +5,9 @@ output: html_document
 params:
   refGenome: ""
   prefix: ""
+  maxMissSample: 0.3
+  maxMissSNP: 0.3
+  maxRelatedness: 0.9
 ---
 
 ```{r setup, include=FALSE}
@@ -20,12 +23,50 @@ library(ggplot2)
 
 
 ```{r data, include=FALSE}
-# refGenome = snakemake@params[['refGenome']]
-# prefix = snakemake@params[['prefix']]
+refGenome = snakemake@params[['refGenome']]
+prefix = snakemake@params[['prefix']]
+maxMissSample = snakemake@params[['maxMissSample']]
+maxMissSNP = snakemake@params[['maxMissSNP']]
+maxRelatedness = snakemake@params[['maxRelatedness']]
 
-vcf.file.path = paste0("results/", refGenome, "/", prefix, "_raw.vcf.gz")
+# vcf.file.path = 'data/cgrandiflora_PRJNA275635.2scf-10indiv.vcf.gz'
+# maxMissSample = 0.3
+# maxMissSNP = 0.3
+# maxRelatedness = 0.9
+
+# vcf.file.path = paste0("results/", refGenome, "/", prefix, "_raw.vcf.gz")
 vcf = readVCF(vcf.file.path, verbose = FALSE)
 ```
+
+
+This script use `rCNV` to detect and test the presence of Copy Number Variation in a SNP callset. Since the data is filtered to guarantee the least false positive and false negative values, many sites are thus removed from the analysis. The user should keep in mind that it is a conservative detection: SNPs annotated as a CNV have a good probability to be real CNVs, but it is impossible to conclude on sites that have been removed from the analysis.
+
+
+## Pre-processing data
+
+
+Filter to keep only bi-allelic SNPs in downstream analyses.
+
+
+```{r biallelic}
+colnames(vcf$vcf)
+
+# Keep only sites with a single ALT character (i.e. biallelic SNPs)
+n_char_ALT = unlist(lapply(vcf$vcf$ALT, nchar))
+table(n_char_ALT)
+head(vcf$vcf$ALT)
+head(n_char_ALT)
+
+vcf$vcf = vcf$vcf[which(n_char_ALT == 1)]
+```
+
+
+### Filtering the VCF for missing data
+
+As missing data can introduce false positives and negatives to the analysis, the VCF output of SNPArcher (rule xxx) is filtered. Note that this is only to improve the reliability of CNV detection, and the SNP Archer VCF output should not be filtered in the same way nor is modified by the filtering step.
+
+The authors recommend to filter samples and SNPs with more than 0.5 missing data. This value can be changed in the `Paralogs` module sub-section in the global `config.yaml`.
+
 
 
 ```{r filtering, include=FALSE}
@@ -34,36 +75,82 @@ vcf = readVCF(vcf.file.path, verbose = FALSE)
 # If retained, these samples and SNPs can introduce false positives and negatives to the analysis.
 # Therefore, they must be removed based on a missing percentage.
 # The function get.miss() determines the missing percentages in samples and SNPs and graphically visualize the missing ranges with 5% quantile values.
-# We recommend removing samples and SNPs with missing percentages higher than 50%."
-mss = get.miss(vcf,verbose = F, plot = TRUE)
+mss = get.miss(vcf, verbose = F, plot = TRUE)
 
-sam  = which(mss$perSample$f_miss>0.5)+9 #here we determine the sample columns with f_miss>0.5 and add 9 to get the correct column number because there are 9 more columns before the sample columns start.
-vcf.filtered = data.frame(vcf$vcf)[,-sam]
+# Filtering samples
+head(mss$perSample)
+sam  = which(mss$perSample$f_miss > maxMissSample) + 9 # here we determine the sample columns with f_miss > max missingness and add 9 to get the correct column number because there are 9 more columns before the sample columns start.
 
+if (length(sam) > 0) {
+  vcf.filtered = data.frame(vcf$vcf)[,-sam]
+} else {
+  vcf.filtered = data.frame(vcf$vcf)
+}
+nrow(vcf.filtered)
 
-# Assessing the relatedness among samples and heterozygosity within
-# We recommend removing one sample of the pairs with outlier values above 0.9.
-rels = relatedness(vcf)
-rels$indv1[rels$relatedness_Ajk > 0.9]
-
-vcf.filtered = vcf.filtered[,colnames(vcf.filtered) %in% rels$indv1[rels$relatedness_Ajk > 0.9]]
+# Filtering sites
+site  = which(mss$perSNP$f_miss > maxMissSNP)
+if (length(site) > 0) {
+  vcf.filtered = vcf.filtered[-site,]
+} else {
+  vcf.filtered = vcf.filtered$vcf
+}
+nrow(vcf.filtered)
 ```
 
 
+### Pairwise relatedness among samples
+
+The function `relatedness()` in the rCNV package will generate the relatedness index between pairs of samples according to Yang et al. (2010). The output is a data frame with pairs of samples and the relatedness score Ajk. Please read Yang et al. (2010) for more information on the calculation of Ajk.
+
+Karunarathne et al. (2023) recommend removing samples with a relatedness above 0.9. You may need to change this parameter for species with high selfing rates or performing  clonality.
+
+
+
+```{r relatedness, include=FALSE}
+# Assessing the relatedness among samples
+# We recommend removing one sample of the pairs with outlier values above 0.9.
+rels = relatedness(vcf)
+
+# Identify pairs with relatedness > 0.9
+# Arbitrary remove the first individual of the pair
+sam = rels$indv1[rels$relatedness_Ajk > 0.99 & rels$indv1 != rels$indv2]
+
+
+ncol(vcf.filtered) - 9
+if (length(sam) > 0) {
+  vcf.filtered = vcf.filtered[,colnames(vcf.filtered) %in% rels$indv1[rels$relatedness_Ajk > maxRelatedness]]
+}
+ncol(vcf.filtered) - 9
+```
+
+
+
+### Generating allele depth tables and normalized depth values
+
+The allele depth will be used to test if a SNP is a CNV or not.
+
+The function hetTgen() generates filtered allele depth table for separate alleles (info.type="AD"). The function can also generate total allele depth (info.type="AD-tot"), genotype table (info.type="GT")...
 
 ```{r alleledepth, include=FALSE}
 # Generating allele depth tables and normalized depth values 
-ad.tab = hetTgen(vcf.filtered, info.type="AD")
+ad.tab = hetTgen(vcf.filtered, info.type = "AD")
 ad.tab[1:10,1:6]
 
 # The genotype table is needed for correcting the genotype mismatches
-gt = hetTgen(filtered, info.type = "GT")
+gt = hetTgen(vcf.filtered, info.type = "GT")
 ad.tab = ad.correct(ad.tab, gt.table = gt)
 
 # Normalize depth table with cpm.normal()
-ad.nor = cpm.normal(ad.tab,method="MedR")
-ad.nor[1:6,1:6]
+ad.nor = cpm.normal(ad.tab, method = "MedR")
+ad.nor$AD[1:6,1:6]
+
+ad.nor$outliers
 ```
+
+
+## CNV detection
+
 
 ```{r detection, include=FALSE}
 # DETECTION
@@ -71,27 +158,29 @@ A.info = allele.info(X = ADtable, x.norm = ADnorm, plot.allele.cov = TRUE)
 # X is the corrected non-normalized allele depth table and x.norm is the normalized allele depth table
 head(A.info)
 
-# Deviants detection
-# Run this code for a demonstration of the detection
-dvs = dupGet(alleleINF, test = c("z.05","chi.05"))
-# z score and chi-square values given p=0.05 is used here because the data is RADseq generated and probe-biase is neglegible
+# Save allele.info
+write.table(A.info, file = paste0("results/", refGenome, "/paralogs/rCNV/", prefix, "_allele_info.tsv"), quote = F, row.names = F, col.names = T, sep = "\t")
 
-head(dvs)
 ```
 
 
+### Deviant detection
+
 ```{r deviants, include=FALSE}
-deviants = dupGet(alleleINF, test = c("z.all","chi.all"), plot = F, verbose = TRUE)
+# z score and chi-square values given p=0.05 can be used if the data is RADseq generated and probe-biase is neglegible
+deviants = dupGet(alleleINF, test = c("z.05","chi.05"), plot = F, verbose = TRUE)
 head(deviants)
 
 # Save deviant table
-write.table(deviants, paste0("results/", refGenome, "/paralogs/rCNV/", prefix, "_deviants.tsv"), quote = F, rownames = F, colnames = T, sep = "\t")
+# file_path = "data/Cgrandiflora/results/paralogs/rCNV"
+# write.table(deviants, file = paste0(file_path, '/Cgrandiflora_deviants.csv'), quote = F, row.names = F, col.names = T, sep = "\t")
+write.table(deviants, file = paste0("results/", refGenome, "/paralogs/rCNV/", prefix, "_deviants.tsv"), quote = F, row.names = F, col.names = T, sep = "\t")
 
 # Plot deviants: Allele median ratio Vs Proportion of Heterozygotes
-p = dup.plot(deviants)
-p
-ggsave(paste0("results/", refGenome, "/paralogs/rCNV/", prefix, "_deviants.jpeg"), p, width = 12, height = 9)
+dup.plot(deviants)
 ```
+
+### Filtering putative CNVs
 
 
 ```{r cnv, include=FALSE}
@@ -105,7 +194,7 @@ ggsave(paste0("results/", refGenome, "/paralogs/rCNV/", prefix, "_deviants.jpeg"
 # The users can pick a range of optimal statistics (e.g. z.all,chi.all,z.05,chi.05, etc.)
 # depending on the nature (also sequencing technology) of the underlying data.
 # The function cnv() is dedicated for this purpose.
-CNV = cnv(alleleINF, test=c("z.05","chi.05"), filter = "kmeans")
+CNV = cnv(alleleINF, test=c("z.05","chi.05"), filter = "kmeans", intersecion = TRUE)
 
 # see the difference between deviants and duplicates
 table(deviants$dup.stat)
@@ -113,10 +202,37 @@ table(CNV$dup.stat)
 
 
 # Save CNV table
+# write.table(deviants, file = paste0(file_path, '/Cgrandiflora_CNV.csv'), quote = F, row.names = F, col.names = T, sep = "\t")
 write.table(CNV, paste0("results/", refGenome, "/paralogs/rCNV/", prefix, "_CNV.tsv") , quote = F, rownames = F, colnames = T, sep = "\t")
 
 # Plot CNV: Allele median ratio Vs Proportion of Heterozygotes
-p = dup.plot(CNV)
-p
-ggsave(paste0("results/", refGenome, "/paralogs/rCNV/", prefix, "_CNV.jpeg"), p, width = 12, height = 9)
+dup.plot(CNV)
 ```
+
+
+
+## Detecting multicopy regions (NOT IMPLEMENTED YET)
+
+Validate CNVs using a sliding windows approach. 'The function `dup.validate` in the rCNV package is dedicated to detecting regions enriched for deviant SNPs within a sliding window along a chromosome, scaffold, or a sequence of any given length' (Karunarathne et al. 2023).
+
+
+```{r dupValidate, include=FALSE}
+duplicates = dup.validate(CNV, window.size = 100, scaf.size = 10000)
+
+head(duplicates)
+```
+
+
+
+Visual validation.
+
+```{r visualValid, include=FALSE}
+# Reproduce this figure
+# The average read coverage depth variation of alleles sequentially arranged on the genomes of (A) Anopheles gambiae and (B) Norway Spruce. Black points indicate the detected putative CNVs by rCNV; the blue line shows the moving window average of the depth values. AgamP4_2R:3436927-3639836 is the previously recognised region of duplication in the right chromosome arm of Anopheles gambiae.
+
+```
+
+
+## References
+
+

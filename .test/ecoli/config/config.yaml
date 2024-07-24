@@ -93,7 +93,8 @@ cov_threshold_stdev:
 cov_threshold_rel: 
 
 ########################################
-## coverage thresholds - mosdepth quantize new module ##
+## Module Quantize_cov:               ## 
+## coverage thresholds - mosdepth quantize ##
 ########################################
 
 # An optional alternative method to estimate mappability
@@ -115,3 +116,8 @@ paralogs: False #set to True if you want to test if SNPs are putative CNVs
 # ngsParalog
 minQ: 20 # Minimum base quality score [20]
 mincov: 1 # Minimum number of reads for an individual to be considered 'covered' [1]
+
+# rCNV - filtering steps
+maxMissSample: 0.3 # Maximum proportion of missing data per sample
+maxMissSNP: 0.3 # Maximum proportion of missing data per SNP
+maxRelatedness: 0.9

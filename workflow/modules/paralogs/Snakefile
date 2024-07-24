@@ -77,9 +77,8 @@ rule rCNV:
         vcfFinalidx = "results/{refGenome}/{prefix}_raw.vcf.gz.tbi"
     output:
         "results/{refGenome}/paralogs/rCNV/{prefix}_deviants.tsv",
-        "results/{refGenome}/paralogs/rCNV/{prefix}_deviants.jpeg",
         "results/{refGenome}/paralogs/rCNV/{prefix}_CNV.tsv",
-        "results/{refGenome}/paralogs/rCNV/{prefix}_CNV.jpeg"
+        "results/{refGenome}/paralogs/rCNV/{prefix}_rCNV.html"
     conda:
         "envs/rcnv.yml"
     log:
@@ -88,6 +87,17 @@ rule rCNV:
         "benchmarks/{refGenome}/rCNV/{prefix}.txt"
     params:
         refGenome = "{refGenome}",
-        prefix = "{prefix}"
+        prefix = "{prefix}",
+        maxMissSample = config['maxMissSample'],
+        maxMissSNP = config['maxMissSNP'],
+        maxRelatedness = config['maxRelatedness']
     script:
-        "scripts/rcnv.R"
+        """
+        mkdir -p results/{refGenome}/paralogs/rCNV/
+        scripts/rcnv.R
+        """
+
+
+
+# TODO Annotate the vcf with the probability to be a CNV
+# and whether or not the SNP was included in the analysis
