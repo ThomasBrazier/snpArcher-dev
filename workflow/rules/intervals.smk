@@ -62,9 +62,7 @@ checkpoint create_gvcf_intervals:
         ref = "results/{refGenome}/data/genome/{refGenome}.fna",
         fai = "results/{refGenome}/data/genome/{refGenome}.fna.fai",
         dictf = "results/{refGenome}/data/genome/{refGenome}.dict",
-        intervals = "results/{refGenome}/intervals/master_interval_list.list",
-        dedupBam = "results/{refGenome}/bams/{sample}_final.bam",
-        dedupBai = "results/{refGenome}/bams/{sample}_final.bam.bai"
+        intervals = "results/{refGenome}/intervals/master_interval_list.list"
     output:
         fof = "results/{refGenome}/intervals/gvcf_intervals/intervals.txt",
         out_dir = directory("results/{refGenome}/intervals/gvcf_intervals"),

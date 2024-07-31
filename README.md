@@ -42,6 +42,11 @@ snakemake --snakefile workflow/Snakefile --use-conda --cores <number of cores> -
 
 
 
+the lower threshold is the absolute number of reads required for callability
+the upper threshold is in terms of the sample-specific mean coverage (i.e. upper = upper * mean coverage)
+this approach uses mosdepth quantize as in Laetsch et al. (2023)
+
+
 This module produces different BED files to filter SNPs per sample (gVCF) or for the entire dataset (final VCF).
 - per site, information on the callability/mappability on average and per sample. This BED is intended to annotate and filter SNPs independently.
 - genomic regions, with summarized information on the callability/mappability on average and per sample. This BED file is intended to mask regions of the genome or to calculate the proportion of the genome that is not mappable/callable.

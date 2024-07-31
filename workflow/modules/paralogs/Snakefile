@@ -12,7 +12,7 @@ wildcard_constraints:
 
 rule all:
     input:
-        target = expand("results/{refGenome}/paralogs/rCNV/{prefix}_CNV.tsv", refGenome=REFGENOME, prefix=config["final_prefix"])
+        target = expand("results/{refGenome}/paralogs/rCNV/{prefix}_rCNV.html", refGenome=REFGENOME, prefix=config["final_prefix"])
 
 
 # samples = pd.read_table(config["samples"], sep=",", dtype=str).replace(' ', '_', regex=True)
@@ -76,6 +76,7 @@ rule rCNV:
         vcfFinal = "results/{refGenome}/{prefix}_raw.vcf.gz",
         vcfFinalidx = "results/{refGenome}/{prefix}_raw.vcf.gz.tbi"
     output:
+        "results/{refGenome}/paralogs/rCNV/{prefix}_allele_info.tsv",
         "results/{refGenome}/paralogs/rCNV/{prefix}_deviants.tsv",
         "results/{refGenome}/paralogs/rCNV/{prefix}_CNV.tsv",
         "results/{refGenome}/paralogs/rCNV/{prefix}_rCNV.html"
@@ -92,11 +93,11 @@ rule rCNV:
         maxMissSNP = config['maxMissSNP'],
         maxRelatedness = config['maxRelatedness']
     script:
-        """
-        mkdir -p results/{refGenome}/paralogs/rCNV/
-        scripts/rcnv.R
-        """
+        "scripts/rcnv.R"
+#        mkdir -p results/{params.refGenome}/paralogs/rCNV/
 
+
+# TODO Output BED files
 
 
 # TODO Annotate the vcf with the probability to be a CNV

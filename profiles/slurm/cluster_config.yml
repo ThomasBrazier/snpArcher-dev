@@ -1,5 +1,6 @@
 __default__:
-    partition: "genouest,bigmem,ecobio"
+    account: 'landrec'
+    partition: "long"
     time: 9000
     nodes: 1
     mem: 10000
