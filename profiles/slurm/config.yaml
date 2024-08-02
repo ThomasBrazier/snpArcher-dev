@@ -431,7 +431,7 @@ set-resources:
 
 # Paralogs module
   paralogs_rCNV:
-    mem_mb: attempt * 8000
+    mem_mb: attempt * 16000
     slurm_partition: "fast"
     runtime:
     cpus_per_task: 1
