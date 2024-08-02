@@ -1,5 +1,10 @@
+slurm-*
+.conda/
+*.log
 .DS_Store
 data_preparation/
+benchmarks/
+results/
 .snakemake*
 template_slurm.sh
 slurm_logs/*

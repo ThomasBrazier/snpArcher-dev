@@ -34,7 +34,7 @@ maxRelatedness = snakemake@params[['maxRelatedness']]
 # maxMissSNP = 0.3
 # maxRelatedness = 0.9
 
-# vcf.file.path = paste0("results/", refGenome, "/", prefix, "_raw.vcf.gz")
+vcf.file.path = paste0("../../../../results/", refGenome, "/", prefix, "_raw.vcf.gz")
 vcf = readVCF(vcf.file.path, verbose = FALSE)
 ```
 
@@ -172,7 +172,8 @@ A.info = allele.info(X = ad.tab, x.norm = ad.nor, plot.allele.cov = TRUE)
 head(A.info)
 
 # Save allele.info
-write.table(A.info, file = paste0("results/", refGenome, "/paralogs/rCNV/", prefix, "_allele_info.tsv"), quote = F, row.names = F, col.names = T, sep = "\t")
+write.table(A.info, file = paste0("../../../../results/", refGenome, "/paralogs/rCNV/", prefix, "_allele_info.tsv"), quote = F, row.names = F, col.names = T, sep = "\t")
+
 ```
 
 
@@ -186,7 +187,7 @@ head(deviants)
 # Save deviant table
 # file_path = "data/Cgrandiflora/results/paralogs/rCNV"
 # write.table(deviants, file = paste0(file_path, '/Cgrandiflora_deviants.csv'), quote = F, row.names = F, col.names = T, sep = "\t")
-write.table(deviants, file = paste0("results/", refGenome, "/paralogs/rCNV/", prefix, "_deviants.tsv"), quote = F, row.names = F, col.names = T, sep = "\t")
+write.table(deviants, file = paste0("../../../../results/", refGenome, "/paralogs/rCNV/", prefix, "_deviants.tsv"), quote = F, row.names = F, col.names = T, sep = "\t")
 
 # Plot deviants: Allele median ratio Vs Proportion of Heterozygotes
 dup.plot(deviants)
@@ -215,7 +216,7 @@ table(CNV$dup.stat)
 
 # Save CNV table
 # write.table(deviants, file = paste0(file_path, '/Cgrandiflora_CNV.csv'), quote = F, row.names = F, col.names = T, sep = "\t")
-write.table(CNV, paste0("results/", refGenome, "/paralogs/rCNV/", prefix, "_CNV.tsv") , quote = F, rownames = F, colnames = T, sep = "\t")
+write.table(CNV, paste0("../../../../results/", refGenome, "/paralogs/rCNV/", prefix, "_CNV.tsv") , quote = F, row.names = F, col.names = T, sep = "\t")
 
 # Plot CNV: Allele median ratio Vs Proportion of Heterozygotes
 dup.plot(CNV)

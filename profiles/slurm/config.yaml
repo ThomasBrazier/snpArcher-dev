@@ -8,8 +8,8 @@ retries: 3 # Retry jobs N times.
 default-resources:
   mem_mb: attempt * 2000
   mem_mb_reduced: (attempt * 2000) * 0.9 # Mem allocated to java for GATK rules (tries to prevent OOM errors)
-  slurm_partition: "ecobio"  
-  slurm_account: mbrault # Same as sbatch -A. Not all clusters use this.
+  slurm_partition: "long"  
+  slurm_account: 'landrec' # Same as sbatch -A. Not all clusters use this.
   runtime: 240 # (In minutes)
 
 # Control number of threads each rule will use.
@@ -145,24 +145,24 @@ set-resources:
 #   # Fastq Processing
   get_fastq_pe:
     mem_mb: attempt * 500
-    slurm_partition: "genouest"
+    slurm_partition: "long"
     runtime: 720
     cpus_per_task: 8
   fastp:
     mem_mb: attempt * 4000
-    slurm_partition: "ecobio"
+    slurm_partition: "long"
     runtime: 240
     cpus_per_task: 4
 
 #   # Alignment  
   bwa_map:
     mem_mb: attempt * 6000
-    slurm_partition: "ecobio"
+    slurm_partition: "long"
     runtime: 5760
     cpus_per_task: 4
   dedup:
     mem_mb: attempt * 6000
-    slurm_partition: "ecobio"
+    slurm_partition: "long"
     runtime: 420
     cpus_per_task: 4
 #   merge_bams:
@@ -175,18 +175,18 @@ set-resources:
   bam2gvcf: # HaplotypeCaller
     mem_mb: attempt * 35000
     mem_mb_reduced: (attempt * 35000) * 0.9
-    slurm_partition: "ecobio"
+    slurm_partition: "long"
     runtime: 720
     cpus_per_task: 1
 #  concat_gvcfs:
 #    mem_mb: attempt * 2000
 #    mem_mb_reduced: (attempt * 2000) * 0.9
-#    slurm_partition: "ecobio"
+#    slurm_partition: "long"
 #    runtime: 120
 #    cpus_per_task: 1
 #  bcftools_norm:
 #    mem_mb: attempt * 100000
-#    slurm_partition: "ecobio,bigmem"
+#    slurm_partition: "long"
 #    runtime: 5760
 #    cpus_per_task: 1
 #  create_db_mapfile:
@@ -197,7 +197,7 @@ set-resources:
   gvcf2DB: # GenomicsDBImport
     mem_mb: attempt * 35000
     mem_mb_reduced: (attempt * 35000) * 0.9
-    slurm_partition: "ecobio"
+    slurm_partition: "long"
     runtime: 120
     cpus_per_task: 1
 
@@ -205,7 +205,7 @@ set-resources:
   DB2vcf: # GenotypeGVCFs
     mem_mb: attempt * 35000
     mem_mb_reduced: (attempt * 35000) * 0.9 # Mem allocated to java (tries to prevent OOM errors)
-    slurm_partition: "ecobio"
+    slurm_partition: "long"
     runtime: 120
     cpus_per_task: 1
 
@@ -216,7 +216,7 @@ set-resources:
 #    cpus_per_task: 1
   sort_gatherVcfs:
     mem_mb: attempt * 5000
-    slurm_partition: "ecobio"
+    slurm_partition: "long"
     runtime: 240
     cpus_per_task: 2
 
@@ -228,7 +228,7 @@ set-resources:
 #     cpus_per_task:
   create_cov_bed:
     mem_mb: attempt * 2000
-    slurm_partition: "ecobio"
+    slurm_partition: "long"
     runtime: 360
     cpus_per_task: 1
 #   merge_d4:
@@ -428,3 +428,10 @@ set-resources:
 #     slurm_partition:
 #     runtime:
 #     cpus_per_task:
+
+# Paralogs module
+  paralogs_rCNV:
+    mem_mb: attempt * 16000
+    slurm_partition: "fast"
+    runtime:
+    cpus_per_task: 1
