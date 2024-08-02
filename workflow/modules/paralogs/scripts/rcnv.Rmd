@@ -61,6 +61,16 @@ vcf$vcf = vcf$vcf[which(n_char_ALT == 1)]
 ```
 
 
+
+```{r vcfSummary}
+# Chromosome names and numbers of markers per chromosome
+table(vcf$vcf[,1])
+
+# Names of individuals
+names(vcf$vcf)[-c(1:9)]
+```
+
+
 ### Filtering the VCF for missing data
 
 As missing data can introduce false positives and negatives to the analysis, the VCF output of SNPArcher (rule xxx) is filtered. Note that this is only to improve the reliability of CNV detection, and the SNP Archer VCF output should not be filtered in the same way nor is modified by the filtering step.
@@ -74,18 +84,22 @@ The authors recommend to filter samples and SNPs with more than 0.5 missing data
 # "The raw VCF files often contain missing data for both samples and SNPs.
 # If retained, these samples and SNPs can introduce false positives and negatives to the analysis.
 # Therefore, they must be removed based on a missing percentage.
-# The function get.miss() determines the missing percentages in samples and SNPs and graphically visualize the missing ranges with 5% quantile values.
+# The function get.miss() determines the missing percentages in samples
+# and SNPs and graphically visualize the missing ranges with 5% quantile values.
 mss = get.miss(vcf, verbose = F, plot = TRUE)
 
 # Filtering samples
 head(mss$perSample)
-sam  = which(mss$perSample$f_miss > maxMissSample) + 9 # here we determine the sample columns with f_miss > max missingness and add 9 to get the correct column number because there are 9 more columns before the sample columns start.
+# here we determine the sample columns with f_miss > max missingness
+# and add 9 to get the correct column number because there are 9 more columns before the sample columns start.
+sam  = which(mss$perSample$f_miss > maxMissSample) + 9
 
 if (length(sam) > 0) {
   vcf.filtered = data.frame(vcf$vcf)[,-sam]
 } else {
   vcf.filtered = data.frame(vcf$vcf)
 }
+nrow(vcf$vcf)
 nrow(vcf.filtered)
 
 # Filtering sites
@@ -115,7 +129,6 @@ rels = relatedness(vcf)
 # Identify pairs with relatedness > 0.9
 # Arbitrary remove the first individual of the pair
 sam = rels$indv1[rels$relatedness_Ajk > 0.99 & rels$indv1 != rels$indv2]
-
 
 ncol(vcf.filtered) - 9
 if (length(sam) > 0) {
@@ -154,13 +167,12 @@ ad.nor$outliers
 
 ```{r detection, include=FALSE}
 # DETECTION
-A.info = allele.info(X = ADtable, x.norm = ADnorm, plot.allele.cov = TRUE)
+A.info = allele.info(X = ad.tab, x.norm = ad.nor, plot.allele.cov = TRUE)
 # X is the corrected non-normalized allele depth table and x.norm is the normalized allele depth table
 head(A.info)
 
 # Save allele.info
 write.table(A.info, file = paste0("results/", refGenome, "/paralogs/rCNV/", prefix, "_allele_info.tsv"), quote = F, row.names = F, col.names = T, sep = "\t")
-
 ```
 
 
