@@ -172,7 +172,7 @@ A.info = allele.info(X = ad.tab, x.norm = ad.nor, plot.allele.cov = TRUE)
 head(A.info)
 
 # Save allele.info
-write.table(A.info, file = paste0("../../../../results/", refGenome, "/paralogs/rCNV/", prefix, "_allele_info.tsv"), quote = F, row.names = F, col.names = T, sep = "\t")
+write.table(A.info, file = paste0("../../../../results/", refGenome, "/paralogs/rCNV/", prefix, "_allele_info.csv"), quote = F, row.names = F, col.names = T, sep = "\t")
 
 ```
 
@@ -181,13 +181,23 @@ write.table(A.info, file = paste0("../../../../results/", refGenome, "/paralogs/
 
 ```{r deviants, include=FALSE}
 # z score and chi-square values given p=0.05 can be used if the data is RADseq generated and probe-biase is neglegible
-deviants = dupGet(alleleINF, test = c("z.05","chi.05"), plot = F, verbose = TRUE)
+deviants = dupGet(A.info, test = c("z.05","chi.05"), plot = F, verbose = TRUE)
 head(deviants)
+
+table(deviants$dup.stat)
+
+idx = which(deviants$dup.stat == "deviant")
+
+deviantBED = data.frame(chrom = CNV$CHROM[idx],
+                    chromStart = CNV$POS[idx] - 1,
+                    chromEnd = CNV$POS[idx])
 
 # Save deviant table
 # file_path = "data/Cgrandiflora/results/paralogs/rCNV"
 # write.table(deviants, file = paste0(file_path, '/Cgrandiflora_deviants.csv'), quote = F, row.names = F, col.names = T, sep = "\t")
-write.table(deviants, file = paste0("../../../../results/", refGenome, "/paralogs/rCNV/", prefix, "_deviants.tsv"), quote = F, row.names = F, col.names = T, sep = "\t")
+write.table(deviants, file = paste0("../../../../results/", refGenome, "/paralogs/rCNV/", prefix, "_deviant.tsv"), quote = F, row.names = F, col.names = T, sep = "\t")
+write.table(deviantBED, paste0("../../../../results/", refGenome, "/paralogs/rCNV/", prefix, "_deviant.BED") , quote = F, row.names = F, col.names = F, sep = "\t")
+
 
 # Plot deviants: Allele median ratio Vs Proportion of Heterozygotes
 dup.plot(deviants)
@@ -207,16 +217,22 @@ dup.plot(deviants)
 # The users can pick a range of optimal statistics (e.g. z.all,chi.all,z.05,chi.05, etc.)
 # depending on the nature (also sequencing technology) of the underlying data.
 # The function cnv() is dedicated for this purpose.
-CNV = cnv(alleleINF, test=c("z.05","chi.05"), filter = "kmeans", intersecion = TRUE)
+CNV = cnv(A.info, test=c("z.05","chi.05"), filter = "kmeans", intersection = TRUE)
 
 # see the difference between deviants and duplicates
 table(deviants$dup.stat)
 table(CNV$dup.stat)
 
+idx = which(CNV$dup.stat == "cnv")
+
+cnvBED = data.frame(chrom = CNV$CHROM[idx],
+                    chromStart = CNV$POS[idx] - 1,
+                    chromEnd = CNV$POS[idx])
 
 # Save CNV table
 # write.table(deviants, file = paste0(file_path, '/Cgrandiflora_CNV.csv'), quote = F, row.names = F, col.names = T, sep = "\t")
 write.table(CNV, paste0("../../../../results/", refGenome, "/paralogs/rCNV/", prefix, "_CNV.tsv") , quote = F, row.names = F, col.names = T, sep = "\t")
+write.table(cnvBED, paste0("../../../../results/", refGenome, "/paralogs/rCNV/", prefix, "_CNV.BED") , quote = F, row.names = F, col.names = F, sep = "\t")
 
 # Plot CNV: Allele median ratio Vs Proportion of Heterozygotes
 dup.plot(CNV)
@@ -224,28 +240,38 @@ dup.plot(CNV)
 
 
 
-## Detecting multicopy regions (NOT IMPLEMENTED YET)
+## Detecting multicopy regions
 
-Validate CNVs using a sliding windows approach. 'The function `dup.validate` in the rCNV package is dedicated to detecting regions enriched for deviant SNPs within a sliding window along a chromosome, scaffold, or a sequence of any given length' (Karunarathne et al. 2023).
+Validate CNVs using a sliding windows approach. "The function `dup.validate` in the rCNV package is dedicated to detecting regions enriched for deviant SNPs within a sliding window along a chromosome, scaffold, or a sequence of any given length" (Karunarathne et al. 2023).
 
 
 ```{r dupValidate, include=FALSE}
-duplicates = dup.validate(CNV, window.size = 100, scaf.size = 10000)
+scaffold.size = 10000
+duplicates = dup.validate(CNV, window.size = 100, scaf.size = scaffold.size)
+
+chrom = gsub("\\.[0-9]+$",  "", duplicates$CHROM)
+pos = gsub("^[0-9A-Za-z]+\\.[0-9]+\\.",  "", duplicates$CHROM)
+pos = as.numeric(pos)
+end = pos * scaffold.size - 1
+start = end - 9999
+
+duplicates = data.frame(chrom = chrom,
+                        start = start,
+                        end = end,
+                        dp.ratio = duplicates$dp.ratio,
+                        CHROM.length = duplicates$CHROM.length,
+                        no.duplicates = duplicates$no.duplicates,
+                        no.singlets = duplicates$no.singlets)
 
 head(duplicates)
-```
 
-
-
-Visual validation.
-
-```{r visualValid, include=FALSE}
-# Reproduce this figure
-# The average read coverage depth variation of alleles sequentially arranged on the genomes of (A) Anopheles gambiae and (B) Norway Spruce. Black points indicate the detected putative CNVs by rCNV; the blue line shows the moving window average of the depth values. AgamP4_2R:3436927-3639836 is the previously recognised region of duplication in the right chromosome arm of Anopheles gambiae.
-
+write.table(CNV, paste0("../../../../results/", refGenome, "/paralogs/rCNV/", prefix, "_duplicates.tsv") , quote = F, row.names = F, col.names = T, sep = "\t")
 ```
 
 
 ## References
 
 
+Karunarathne P, Zhou Q, Schliep K, Milesi P. A comprehensive framework for detecting copy number variants from single nucleotide polymorphism data: 'rCNV', a versatile r package for paralogue and CNV detection. Mol Ecol Resour. 2023 Jul 29. doi:http://doi.org/10.1111/1755-0998.13843
+
+Karunarathne, P., Zhou, Q., Schliep, K., & Milesi, P. (2022). A new framework for detecting copy number variants from single nucleotide polymorphism data: ‘rCNV’, a versatile R package for paralogs and CNVs detection. BioRxiv, 2022.10.14.512217. doi:http://doi.org/10.1101/2022.10.14.512217

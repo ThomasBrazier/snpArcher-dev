@@ -66,7 +66,7 @@ The idea of this module is to easily get all the information to account for hete
 
 #### Output files
 
-The final BED file is the multiintersect of callable sites (mosdepth method) and mappable sites (genmap method).
+The final BED file is the multi-intersect of callable sites (mosdepth method) and mappable sites (genmap method).
 
 
 ### Module Paralogs
@@ -75,8 +75,7 @@ The final BED file is the multiintersect of callable sites (mosdepth method) and
 Identify:
 - SNPs that are putative pseudo-heterozygotes due to CNVs (called deviants in the rCNV method). A ‘CNV’ SNP is categorized as a putative CNV if it is supported by at least two of the statistics (based on their p-values) and by the K-means clustering method (which is independent of thresholds and cut-off values).
 - deviant SNPs that are not statistically supported as CNVs, but are flagged as outliers and less reliable than other SNPs called. Let the user decide if he wants to remove these deviant SNPs or not.
-- the entire multicopy regions, or CNV regions, instead of SNP-based annotation. BED format.
-
+- multicopy regions, based on a sliding windows approach.
 
 `rCNV` is set with the recommended parameters for WGS data.
 
@@ -89,8 +88,9 @@ It is recommended to perform Hardy-Weinberg equilibrium tests on sites as a basi
 #### Output files
 
 * `paralogs/rCNV/*_allele_info.tsv`, the summary statistics per site which are used to classify SNPs as deviants/CNVs
-* `paralogs/rCNV/*_deviants.tsv`, deviant sites, a set of sites showing departure from the expected allele ratio (useful to prune a SNP dataset to remove pseudo-heterozygotes and putative multicopy regions)
-* `paralogs/rCNV/*_CNV.tsv`, CNV sites, a set of confidently assessed CNVs (useful to annotate sites present in multicopy regions and to detect these regions)
+* `paralogs/rCNV/*_deviants.tsv` and `.BED`, deviant sites, a set of sites showing departure from the expected allele ratio (useful to prune a SNP dataset to remove pseudo-heterozygotes and putative multicopy regions)
+* `paralogs/rCNV/*_CNV.tsv` and `.BED`, CNV sites, a set of confidently assessed CNVs (useful to annotate sites present in multicopy regions and to detect these regions)
+* `paralogs/rCNV/*_duplicates.tsv`, sliding windows along the chromosome, with the count of duplicate and singlet sites
 * `paralogs/rCNV/*_rCNV.html`, an HTML report on the full rCNV analysis
 
 
