@@ -29,19 +29,54 @@ snakemake -d .test/ecoli --cores 1 --use-conda
 
 ### How to configure the repo for your analyses - Git branching
 
+First of all, you need to configure your repository for analyses. Please avoid changing directly the config files and committing changes to the main branch, otherwise other users will be affected by your commits. In order to work properly with parallel settings (for each user), it is strongly recommended to use branching.
+
+Eash user has to make its own branch, and commit changes to config files only in its own branch. This branch should NEVER be merged with main branch. Hence each user can work with it own settings in isolation. Another advantage is that the user will not be affected by upstream commits (i.e. updates in the pipeline), unless he explicitly merge his branch with upstream `main` branch.
+
+```
+git branch myownconfigname
+git checkout myownconfigname
+```
+
+
+[Branching in a nutshell](https://git-scm.com/book/en/v2/Git-Branching-Branches-in-a-Nutshell)
+[Github branching documentation](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository)
 
 
 ### Working directory and data
 
 
-You first need to make a working directory, either within or outside the snpArcher directory.
+You also need to make a working directory, either within or outside the snpArcher directory. If it is outside, you don't care of the above branching recommendations.
 
 Within your working directory you need to copy the `config/` directory and modify the settings (usually `config.yaml` and `samples.csv`) according to your analyses. You can add multiple sub-directories if you wish to run multiple datasets in parallel (e.g. `<your working directory>/<your dataset>/`). Snakemake will install a `.snakemake` config directory at the first run to install conda envs (it can take times).
+
+In addition, you can modify the `profiles/slurm/config.yaml` in place (since you are on your own branch) or copy it to your working directory.
+
+A recommended architecture is the following:
+
+```
+.
+├── evolsv/
+│   ├── config/
+│   │   ├── config.yaml <default config file>
+|   ├── profiles/
+|   |   ├── slurm/
+│   |   |   ├── config.yaml <default slurm profile>
+│   ├── workflow/
+│   ├── data/
+|   |   ├── config/
+│   │   |   ├── config.yaml <your own config file>
+|   |   ├── profiles/
+|   |   |   ├── slurm/
+│   │   |   |   ├── config.yaml <your own slurm profile>
+```
+
+
 
 Run the analyses from the snpArcher directory with :
 
 ```
-snakemake --snakefile workflow/Snakefile --use-conda --cores <number of cores> --printshellcmds -d <your working directory>/<your dataset>/
+snakemake --snakefile workflow/Snakefile --use-conda --cores <number of cores> --printshellcmds --profile <your working directory>/profiles/slurm/config.yaml -d <your working directory>/<your dataset>/
 ```
 
 
@@ -57,6 +92,11 @@ BAM files are now marked as temporary files, and are removed as soon as they hav
 
 ### Module Quantize_cov
 
+
+Laetsch, D. R., Bisschop, G., Martin, S. H., Aeschbacher, S., Setter, D., & Lohse, K. (2023). Demographically explicit scans for barriers to gene flow using gIMble. PLoS genetics, 19(10), e1010999.
+
+
+[mosdepth](https://github.com/brentp/mosdepth)
 
 
 ### Module Paralogs (work in progress - not in main branch)
