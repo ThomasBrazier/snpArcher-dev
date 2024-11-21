@@ -19,7 +19,12 @@ logger.warning(f"snpArcher: Using Snakemake {snakemake.__version__}")
 if SNAKEMAKE_VERSION >= 8:
     DEFAULT_STORAGE_PREFIX = StorageSettings.default_storage_prefix if StorageSettings.default_storage_prefix is not None else ""
 else:
+    # backwards compatability w/ snakemake <= 7
     DEFAULT_STORAGE_PREFIX = workflow.default_remote_prefix
+    if config["remote_reads"]:
+        from snakemake.remote.GS import RemoteProvider as GSRemoteProvider
+        GS = GSRemoteProvider()
+        GS_READS_PREFIX = config['remote_reads_prefix']
 
 samples = snparcher_utils.parse_sample_sheet(config)
 
@@ -247,6 +252,12 @@ def get_reads(wc):
     else:
         return {"r1": r1, "r2": r2}
 
+def get_reads_fastp(wc):
+    if config.get("sort_reads", False):
+        return {"r1":"results/{refGenome}/sorted_reads/{sample}/{run}_1.fastq.gz", "r2":"results/{refGenome}/sorted_reads/{sample}/{run}_2.fastq.gz"}
+    else:
+        return get_reads(wc)
+
 def get_remote_reads(wildcards):
     """Use this for reads on a different remote bucket than the default. For backwards compatibility."""
     # print(wildcards)
@@ -303,7 +314,10 @@ def get_input_sumstats(wildcards):
 
 def get_input_for_mapfile(wildcards):
     sample_names = samples.loc[(samples["refGenome"] == wildcards.refGenome)]["BioSample"].unique().tolist()
-    return expand("results/{{refGenome}}/gvcfs_norm/{sample}.g.vcf.gz", sample=sample_names)
+    if config["intervals"]:
+        return expand("results/{{refGenome}}/gvcfs_norm/{sample}.g.vcf.gz", sample=sample_names)
+    else:
+        return expand("results/{{refGenome}}/gvcfs/{sample}.g.vcf.gz", sample=sample_names)
 
 
 def get_input_for_coverage(wildcards):
@@ -434,6 +448,17 @@ def collectFastpOutput(fastpFiles):
 
     return (FractionReadsPassFilter, NumReadsPassFilter)
 
+def combine_fastp_files(fastpFiles, outputfile):
+    unfiltered = 0
+    pass_filter = 0
+    for fn in fastpFiles:
+        with open(fn, "r") as f:
+            data = json.load(f)
+        unfiltered += data["summary"]["before_filtering"]["total_reads"]
+        pass_filter += data["summary"]["after_filtering"]["total_reads"]
+    out = {"summary": {"before_filtering":{"total_reads": unfiltered}, "after_filtering":{"total_reads": pass_filter}}}
+    with open(outputfile[0], "w") as f:
+        json.dump(out, f)
 
 def collectAlnSumMets(alnSumMetsFiles):
     aln_metrics = defaultdict(dict)

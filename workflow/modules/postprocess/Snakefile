@@ -46,8 +46,6 @@ rule basic_filter:
         filtered_idx = "results/{refGenome}/{prefix}_filtered.vcf.gz.csi"
     conda:
         "envs/filter.yml"
-    resources:
-        mem_mb = lambda wildcards, attempt: attempt * 4000
     shell:
         """
         bcftools view -S {input.include} -f .,PASS {input.vcf} -a -U -O u | bcftools +fill-tags -Ou |
@@ -67,8 +65,6 @@ rule update_bed:
         tmp_bed = temp("results/{refGenome}/postprocess/{prefix}_tmp.bed")
     conda:
         "envs/bed.yml"
-    resources:
-        mem_mb = lambda wildcards, attempt: attempt * 4000
     params:
         size_filter = config["contig_size"],
     shell:
@@ -90,19 +86,18 @@ rule strict_filter:
     params:
         miss = config["missingness"],
         maf = config["maf"],
-        chr_ex = config["scaffolds_to_exclude"]
-    resources:
-        mem_mb = lambda wildcards, attempt: attempt * 4000    
+        upper_bound = lambda wildcards: 1 - float(config["maf"]),
+        chr_ex = config["scaffolds_to_exclude"],   
     shell:
         """
         if [ -z "{params.chr_ex}" ]
         then
             bcftools view -R {input.bed} -m2 -M2 \
-            -e 'F_MISSING > {params.miss} | AF<{params.maf}' \
+            -e 'F_MISSING > {params.miss} | AF<{params.maf} | AF>{params.upper_bound}' \
             {input.vcf} -O u -o {output.vcf}
         else
             bcftools view -t ^{params.chr_ex} -R {input.bed} -m2 -M2 \
-            -e 'F_MISSING > {params.miss} | AF<{params.maf}' \
+            -e 'F_MISSING > {params.miss} | AF<{params.maf} | AF>{params.upper_bound}' \
             {input.vcf} -O u -o {output.vcf} 
         fi
         bcftools index {output.vcf}
@@ -122,8 +117,6 @@ rule subset_indels:
         "envs/filter.yml"
     log:
         "logs/{refGenome}/postprocess/{prefix}_subset_indels.txt"
-    resources:
-        mem_mb = lambda wildcards, attempt: attempt * 4000
     shell:
         """
         bcftools view -v indels -O z -o {output.vcf} {input.vcf}
@@ -138,16 +131,37 @@ rule subset_snps:
         vcf = "results/{refGenome}/postprocess/{prefix}_filtered.TEMP.vcf.gz",
         idx = "results/{refGenome}/postprocess/{prefix}_filtered.TEMP.vcf.gz.csi"
     output: 
+        vcf = temp("results/{refGenome}/postprocess/{prefix}_clean_snps_1.vcf.gz"),
+        idx = temp("results/{refGenome}/postprocess/{prefix}_clean_snps_1.vcf.gz.tbi")
+    conda:
+        "envs/filter.yml"    
+    log:
+        "logs/{refGenome}/postprocess/{prefix}_subset_snps.txt"
+    shell:
+        """
+        bcftools view -v snps -e 'TYPE ~ "indel"' -O z -o {output.vcf} {input.vcf}
+        bcftools index -t {output.vcf}
+        """
+
+rule drop_indel_SNPs:
+    """
+    identify and remove SNPs that overlapped with indels and are coded as genotype length > 1
+    """
+    input: 
+        vcf = "results/{refGenome}/postprocess/{prefix}_clean_snps_1.vcf.gz",
+        idx = "results/{refGenome}/postprocess/{prefix}_clean_snps_1.vcf.gz.tbi"
+    output:
+        keep_snps = temp("results/{refGenome}/postprocess/{prefix}_keep_snp_positions.txt"),
         vcf = "results/{refGenome}/{prefix}_clean_snps.vcf.gz",
         idx = "results/{refGenome}/{prefix}_clean_snps.vcf.gz.tbi"
     conda:
         "envs/filter.yml"    
     log:
-        "logs/{refGenome}/postprocess/{prefix}_subset_snps.txt"
-    resources:
-        mem_mb = lambda wildcards, attempt: attempt * 4000
+        "logs/{refGenome}/postprocess/{prefix}_drop_indel_snps.txt"
     shell:
         """
-        bcftools view -v snps -e 'TYPE ~ "indel"' -O z -o {output.vcf} {input.vcf}
+        bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\n' {input.vcf} | awk 'length($3) == 1 {{print $1"\t"$2}}' | bgzip -c > {output.keep_snps} 
+        tabix -s1 -b2 -e2 {output.keep_snps}
+        bcftools view -T {output.keep_snps} {input.vcf} -Oz -o {output.vcf}
         bcftools index -t {output.vcf}
         """
