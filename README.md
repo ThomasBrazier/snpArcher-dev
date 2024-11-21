@@ -37,11 +37,15 @@ snakemake --snakefile workflow/Snakefile --use-conda --cores <number of cores> -
 ## New Features and Development
 
 
+### Temporary BAM files
+
+BAM files are now marked as temporary files, and are removed as soon as they have been used by the last rule calling them. It should improve pipeline scalability by freeing storage space earlier in the process.
+
 ### Module Quantize_cov
 
 
 
-### Module Paralogs
+### Module Paralogs (work in progress - not in main branch)
 
 
 
