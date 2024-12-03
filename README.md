@@ -56,7 +56,7 @@ A recommended architecture is the following:
 
 ```
 .
-├── evolsv/
+├── snparcher-dev/
 │   ├── config/
 │   │   ├── config.yaml <default config file>
 |   ├── profiles/
