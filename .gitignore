@@ -3,6 +3,8 @@ data_preparation/
 .snakemake*
 template_slurm.sh
 slurm_logs/*
+projects/
+run_pipeline_local.sh
 # indexing and creating a sequence dictionary gets done within pipeline
 data/zebraFinch/genome/*.sa
 data/zebraFinch/genome/*.pac
