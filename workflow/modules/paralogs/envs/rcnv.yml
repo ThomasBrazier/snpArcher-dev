@@ -1,0 +1,7 @@
+name: rcnv
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - tbrazier::r-rcnv

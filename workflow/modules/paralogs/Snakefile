@@ -1,0 +1,102 @@
+import pandas as pd
+import os
+include: "common.smk"
+
+
+samples = pd.read_table(config["samples"], sep=",", dtype=str).replace(' ', '_', regex=True)
+REFGENOME = samples['refGenome'].unique().tolist()
+
+
+wildcard_constraints:
+    prefix=config["final_prefix"]
+
+# rule all:
+#     input:
+#         target = expand("results/{refGenome}/paralogs/rCNV/{prefix}_rCNV.html", refGenome=REFGENOME, prefix=config["final_prefix"])
+
+
+rule all:
+    input:
+        expand("results/{refGenome}/paralogs/{sample}_hmm_region.rf", refGenome=REFGENOME, sample=_samples)
+
+
+rule calcLR:
+    """
+    ngsParalog is a program for detecting genomic regions that are problematic for short reading mapping using population-level, next generation sequencing (NGS) data.
+
+    calcLR will calculate a likelihood ratio (LR) of mismapping reads covering each site.
+    """
+    input:
+        bam = "results/{refGenome}/bams/{sample}_final.bam"
+    output:
+        "results/{refGenome}/paralogs/{sample}_calcLR.lr"
+    conda:
+        "envs/paralogs.yml"
+    log:
+        "logs/{refGenome}/calcLR/{sample}.txt"
+    benchmark:
+        "benchmarks/{refGenome}/calcLR/{sample}.txt"
+    shell:
+        """
+        samtools mpileup -b {input.bam} |
+        ngsParalog calcLR -infile - \
+                            -outfile {output} \
+                            -minQ {config[minQ]} \
+                            -minind 1 \
+                            -mincov {config[mincov]}
+        """
+
+
+rule HMM_region:
+    """
+    The dupHMM.R script models the LRs from calcLR and sequencing depth as emissions in a Hidden Markov Model
+    to infer transitions between problematic mapping and normal mapping regions along a chromosome.
+    Since this is an HMM that runs along the length of a chromosome it is most appropriate for data
+    that has been mapped to a reference assembly with long scaffolds.
+    Simulations demonstrate that this method achieves higher accuracy for
+    identifying regions of mismapping than using the LRs or coverage alone.
+    """
+    input:
+        bam = "results/{refGenome}/bams/{sample}_final.bam",
+        calcLR = "results/{refGenome}/paralogs/{sample}_calcLR.lr"
+    output:
+        "results/{refGenome}/paralogs/{sample}_hmm_region.rf"
+    conda:
+        "envs/paralogs.yml"
+    log:
+        "logs/{refGenome}/HMM_region/{sample}.txt"
+    benchmark:
+        "benchmarks/{refGenome}/HMM_region/{sample}.txt"
+    shell:
+        """
+        dupHMM.R --lrfile={input.calcLR} --outfile="results/{refGenome}/paralogs/{sample}_hmm_region" -n 1
+        """
+
+
+
+# rule rCNV:
+#     input:
+#         vcfFinal = "results/{refGenome}/{prefix}_raw.vcf.gz",
+#         vcfFinalidx = "results/{refGenome}/{prefix}_raw.vcf.gz.tbi"
+#     output:
+#         "results/{refGenome}/paralogs/rCNV/{prefix}_allele_info.tsv",
+#         "results/{refGenome}/paralogs/rCNV/{prefix}_deviant.tsv",
+#         "results/{refGenome}/paralogs/rCNV/{prefix}_CNV.tsv",
+#         "results/{refGenome}/paralogs/rCNV/{prefix}_deviant.BED",
+#         "results/{refGenome}/paralogs/rCNV/{prefix}_CNV.BED",
+#         "results/{refGenome}/paralogs/rCNV/{prefix}_duplicates.tsv",
+#         "results/{refGenome}/paralogs/rCNV/{prefix}_rCNV.html"
+#     conda:
+#         "envs/rcnv.yml"
+#     log:
+#         "logs/{refGenome}/rCNV/{prefix}.txt"
+#     benchmark:
+#         "benchmarks/{refGenome}/rCNV/{prefix}.txt"
+#     params:
+#         refGenome = "{refGenome}",
+#         prefix = "{prefix}",
+#         maxMissSample = config['maxMissSample'],
+#         maxMissSNP = config['maxMissSNP'],
+#         maxRelatedness = config['maxRelatedness']
+#     script:
+#         "scripts/rcnv.R"
