@@ -6,4 +6,9 @@ dependencies:
   - bedtools
   - samtools
   - python=3.10
+  - r-base
+  - r-knitr
+  - r-ggplot2
+  - r-truncnorm
+  - r-docopt
   - tbrazier::ngsparalog

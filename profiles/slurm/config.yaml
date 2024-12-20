@@ -95,6 +95,9 @@ set-threads:
   quantize_cov_callable_bed_per_sample: 1
   quantize_cov_callable_bed_all_samples: 1
   quantize_cov_add_mappability: 1
+  # Module paralogs
+  paralogs_calcLR: 1
+  paralogs_HMM_region: 1
 
 # Control other resources used by each rule.
 # set-resources:
@@ -457,6 +460,18 @@ set-threads:
 #     runtime:
 #     cpus_per_task:
 #   quantize_cov_add_mappability:
+#     mem_mb: attempt * 2000
+#     slurm_partition:
+#     runtime:
+#     cpus_per_task:
+
+#   # Module Paralog
+#   paralogs_calcLR:
+#     mem_mb: attempt * 2000
+#     slurm_partition:
+#     runtime:
+#     cpus_per_task:
+#   paralogs_HMM_region:
 #     mem_mb: attempt * 2000
 #     slurm_partition:
 #     runtime:

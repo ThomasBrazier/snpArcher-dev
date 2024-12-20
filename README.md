@@ -92,18 +92,26 @@ BAM files are now marked as temporary files, and are removed as soon as they hav
 
 ### Module Quantize_cov
 
-
+```
 Laetsch, D. R., Bisschop, G., Martin, S. H., Aeschbacher, S., Setter, D., & Lohse, K. (2023). Demographically explicit scans for barriers to gene flow using gIMble. PLoS genetics, 19(10), e1010999.
-
+```
 
 [mosdepth](https://github.com/brentp/mosdepth)
 
 
 ### Module Paralogs (work in progress - not in main branch)
 
+Mismapped reads and structural variants can be called as fake SNPs. We use the ngsParalog software to detect deviant SNPs as in Dallaire et al. 2023.
 
 
 
+```
+Dallaire, Xavier, Raphael Bouchard, Philippe Hénault, Gabriela Ulmo-Diaz, Eric Normandeau, Claire Mérot, Louis Bernatchez, et Jean-Sébastien Moore. « Widespread Deviant Patterns of Heterozygosity in Whole-Genome Sequencing Due to Autopolyploidy, Repeated Elements, and Duplication ». Édité par Andrea Betancourt. Genome Biology and Evolution 15, nᵒ 12 (1 décembre 2023): evad229. https://doi.org/10.1093/gbe/evad229.
+```
+
+Output files:
+* "results/{refGenome}/paralogs/{sample}_paralogs_sites.bed"
+* "results/{refGenome}/paralogs/{sample}_paralogs_region.bed"
 
 
 

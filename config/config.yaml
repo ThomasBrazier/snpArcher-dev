@@ -105,3 +105,34 @@ quantize_cov_filter: True #set to True if you want to use the alternative quanti
 
 quantize_cov_threshold_lower: 10 # Must be integer
 quantize_cov_threshold_upper: 3 # Must be integer
+
+
+########################################
+## Module paralogs ##
+########################################
+# ngsParalogs calcLR config
+# -offsetQ    <float>     Quality score offset [33]
+# -minQ       <float>     Minimum base quality score [20]
+# -minind     <int>       Minimum number of covered individuals to retain site [1]
+# -mincov     <int>       Minimum number of reads for an individual to be considered 'covered' [1]
+
+# Set to default parameters
+offsetQ: 33
+minind: 1
+minQ: 20
+mincov: 1
+
+# ngsParalog dupHMM config
+# --emit=<0|1>           Use (0) only LRs or (1) LRs and coverage as emissions [default: 1]            
+# --covfile=<file>       File with the average individual coverage for all sites in the LR file
+# --penalty=<character>  Penalize likelihood ratios using AIC, BIC, or none for no penalty [default: none]
+# --n=<int>              Diploid sample size (required for BIC)
+# --maxiter=<int>        Maximum number of Baum-Welch iterations [default: 100]
+# --probdiff=<float>     Minimum difference in log likelihood between Baum-Welch iterations [default: 1e-4]
+# --lrquantile=<float>   Ignore LRs above this quantile when fitting alternative LR distribution [default: 1.0]
+# --maxcoverage=<float>  Maximum coverage for fitting coverage distribution
+# --dupcovmin=<float>    Lower bound for duplicated coverage distribution [default: 0]
+# --paramOnly=<0|1>      Only estimate emission density params if 1 [default: 0]
+# --paramfile=<file>     File with emission density parameter estimates
+# --printStates=<0|1>    Output SNP states if 1 [default: 0]
+lrquantile: 0.98

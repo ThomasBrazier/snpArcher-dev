@@ -17,12 +17,14 @@ wildcard_constraints:
 
 rule all:
     input:
-        expand("results/{refGenome}/paralogs/{sample}_hmm_region.rf", refGenome=REFGENOME, sample=_samples)
+        expand("results/{refGenome}/paralogs/{sample}_hmm_region.rf", refGenome=REFGENOME, sample=_samples),
+        expand("results/{refGenome}/paralogs/{sample}_LR_pvalue.tsv", refGenome=REFGENOME, sample=_samples)
 
 
 rule calcLR:
     """
-    ngsParalog is a program for detecting genomic regions that are problematic for short reading mapping using population-level, next generation sequencing (NGS) data.
+    ngsParalog is a program for detecting genomic regions that are problematic for short reading mapping
+    using population-level, next generation sequencing (NGS) data.
 
     calcLR will calculate a likelihood ratio (LR) of mismapping reads covering each site.
     """
@@ -38,15 +40,43 @@ rule calcLR:
         "benchmarks/{refGenome}/calcLR/{sample}.txt"
     shell:
         """
-        samtools mpileup -b {input.bam} |
+        samtools mpileup -b {input.bam} -q 0 -Q 0 --ff UNMAP,DUP -d 0 |
         ngsParalog calcLR -infile - \
                             -outfile {output} \
+                            -offsetQ {config[offsetQ]} \
                             -minQ {config[minQ]} \
-                            -minind 1 \
+                            -minind {config[minind]} \
                             -mincov {config[mincov]}
         """
 
+# TODO R script - p-values for LR
+rule LR_pvalues:
+    input:
+        "results/{refGenome}/paralogs/{sample}_calcLR.lr"
+    output:
+        "results/{refGenome}/paralogs/{sample}_paralogs_sites.bed"
+    conda:
+        "envs/rcnv.yml"
+    log:
+        "logs/{refGenome}/LR_pvalues/{prefix}.txt"
+    benchmark:
+        "benchmarks/{refGenome}/LR_pvalues/{prefix}.txt"
+    params:
+        refGenome = "{refGenome}",
+        sample = "{sample}"
+    script:
+        "scripts/lr_pvalues.R"
 
+
+# TODO Manhattan plot of LR
+# Mismapping LR along the genome
+
+
+# TODO Coverage file
+
+
+# TODO
+# One chromosome/scaffold at a time
 rule HMM_region:
     """
     The dupHMM.R script models the LRs from calcLR and sequencing depth as emissions in a Hidden Markov Model
@@ -58,9 +88,11 @@ rule HMM_region:
     """
     input:
         bam = "results/{refGenome}/bams/{sample}_final.bam",
-        calcLR = "results/{refGenome}/paralogs/{sample}_calcLR.lr"
+        calcLR = "results/{refGenome}/paralogs/{sample}_calcLR.lr",
+        coverage = ""
     output:
-        "results/{refGenome}/paralogs/{sample}_hmm_region.rf"
+        regions = "results/{refGenome}/paralogs/{sample}_hmm_region.rf",
+        par = "results/{refGenome}/paralogs/{sample}_hmm_region.par"
     conda:
         "envs/paralogs.yml"
     log:
@@ -69,9 +101,15 @@ rule HMM_region:
         "benchmarks/{refGenome}/HMM_region/{sample}.txt"
     shell:
         """
-        dupHMM.R --lrfile={input.calcLR} --outfile="results/{refGenome}/paralogs/{sample}_hmm_region" -n 1
+        dupHMM.R --lrfile={input.calcLR} \
+        --outfile="results/{refGenome}/paralogs/{sample}_hmm_region" \
+        --covfile={input.coverage} \
+        -n 1 \
+        --lrquantile={config[lrquantile]}
         """
 
+
+# TODO Merge all chromosome/scaffolds HMM regions in a single BED file
 
 
 # rule rCNV:
