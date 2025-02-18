@@ -1,140 +1,124 @@
 import pandas as pd
 import os
-include: "common.smk"
+configfile: "config/config.yaml"
+import snparcher_utils
 
-
-samples = pd.read_table(config["samples"], sep=",", dtype=str).replace(' ', '_', regex=True)
+samples = snparcher_utils.parse_sample_sheet(config)
+BIOSAMPLE = samples["BioSample"].unique().tolist()
 REFGENOME = samples['refGenome'].unique().tolist()
-
-
-wildcard_constraints:
-    prefix=config["final_prefix"]
-
-# rule all:
-#     input:
-#         target = expand("results/{refGenome}/paralogs/rCNV/{prefix}_rCNV.html", refGenome=REFGENOME, prefix=config["final_prefix"])
-
+FINAL_PREFIX = config["final_prefix"]
 
 rule all:
     input:
-        expand("results/{refGenome}/paralogs/{sample}_hmm_region.rf", refGenome=REFGENOME, sample=_samples),
-        expand("results/{refGenome}/paralogs/{sample}_LR_pvalue.tsv", refGenome=REFGENOME, sample=_samples)
+        expand("results/{refGenome}/paralogs/{prefix}.paralogs.bed", refGenome=REFGENOME, prefix=FINAL_PREFIX),
+        expand("results/{refGenome}/paralogs/{prefix}.paralogs.png", refGenome=REFGENOME, prefix=FINAL_PREFIX)
 
-
-rule calcLR:
+rule get_bam_list:
     """
-    ngsParalog is a program for detecting genomic regions that are problematic for short reading mapping
-    using population-level, next generation sequencing (NGS) data.
-
-    calcLR will calculate a likelihood ratio (LR) of mismapping reads covering each site.
+    List of all bam files
     """
     input:
-        bam = "results/{refGenome}/bams/{sample}_final.bam"
+        bams = expand("results/{refGenome}/bams/{sample}_final.bam", refGenome=REFGENOME, sample=BIOSAMPLE)
+        bam_list = temp("results/{refGenome}/paralogs/{prefix}.bam_list.txt")
+    log:
+        "logs/{refGenome}/paralogs/{prefix}.log"
+    shell:
+        """
+        printf "%s\n" {input.bams} > {output.bam_list}
+        """
+
+rule get_snps_list:
+    """
+    List of all snp positions
+    """
+    input:
+        vcf = "results/{refGenome}/{prefix}_raw.vcf.gz"
     output:
-        "results/{refGenome}/paralogs/{sample}_calcLR.lr"
+        snps_list = temp("results/{refGenome}/paralogs/{prefix}_raw.snps_list.bed")
+    conda:
+        "envs/paralogs.yml"
+    shell:
+        """
+        bcftools view --no-header {input.vcf} | \
+            awk -F '\t' '{{print $1 "\t" $2}}' > {output.snps_list}
+        """
+
+rule ngs_paralog:
+    """
+    Main ngsparalog command
+    """
+    input:
+        bam_list = "results/{refGenome}/paralogs/{prefix}.bam_list.txt",
+        snps_list = "results/{refGenome}/paralogs/{prefix}_raw.snps_list.bed",
+        ngs_paralogs_path = config["ngs_paralogs_path"]
+    output:
+        paralogs_lr = "results/{refGenome}/paralogs/{prefix}.lr"
     conda:
         "envs/paralogs.yml"
     log:
-        "logs/{refGenome}/calcLR/{sample}.txt"
-    benchmark:
-        "benchmarks/{refGenome}/calcLR/{sample}.txt"
-    shell:
-        """
-        samtools mpileup -b {input.bam} -q 0 -Q 0 --ff UNMAP,DUP -d 0 |
-        ngsParalog calcLR -infile - \
-                            -outfile {output} \
-                            -offsetQ {config[offsetQ]} \
-                            -minQ {config[minQ]} \
-                            -minind {config[minind]} \
-                            -mincov {config[mincov]}
-        """
-
-# TODO R script - p-values for LR
-rule LR_pvalues:
-    input:
-        "results/{refGenome}/paralogs/{sample}_calcLR.lr"
-    output:
-        "results/{refGenome}/paralogs/{sample}_paralogs_sites.bed"
-    conda:
-        "envs/rcnv.yml"
-    log:
-        "logs/{refGenome}/LR_pvalues/{prefix}.txt"
-    benchmark:
-        "benchmarks/{refGenome}/LR_pvalues/{prefix}.txt"
+        "logs/{refGenome}/paralogs/{prefix}.log"
     params:
-        refGenome = "{refGenome}",
-        sample = "{sample}"
-    script:
-        "scripts/lr_pvalues.R"
-
-
-# TODO Manhattan plot of LR
-# Mismapping LR along the genome
-
-
-# TODO Coverage file
-
-
-# TODO
-# One chromosome/scaffold at a time
-rule HMM_region:
-    """
-    The dupHMM.R script models the LRs from calcLR and sequencing depth as emissions in a Hidden Markov Model
-    to infer transitions between problematic mapping and normal mapping regions along a chromosome.
-    Since this is an HMM that runs along the length of a chromosome it is most appropriate for data
-    that has been mapped to a reference assembly with long scaffolds.
-    Simulations demonstrate that this method achieves higher accuracy for
-    identifying regions of mismapping than using the LRs or coverage alone.
-    """
-    input:
-        bam = "results/{refGenome}/bams/{sample}_final.bam",
-        calcLR = "results/{refGenome}/paralogs/{sample}_calcLR.lr",
-        coverage = ""
-    output:
-        regions = "results/{refGenome}/paralogs/{sample}_hmm_region.rf",
-        par = "results/{refGenome}/paralogs/{sample}_hmm_region.par"
-    conda:
-        "envs/paralogs.yml"
-    log:
-        "logs/{refGenome}/HMM_region/{sample}.txt"
-    benchmark:
-        "benchmarks/{refGenome}/HMM_region/{sample}.txt"
+        minQ = config["minQ"],
+        minind = config["minind"],
+        mincov = config["mincov"]
     shell:
         """
-        dupHMM.R --lrfile={input.calcLR} \
-        --outfile="results/{refGenome}/paralogs/{sample}_hmm_region" \
-        --covfile={input.coverage} \
-        -n 1 \
-        --lrquantile={config[lrquantile]}
+        samtools mpileup -b {input.bam_list} -l {input.snps_list} -q 0 -Q 0--ff UNMAP,DUP -d 0| \
+	        ngsParalog calcLR -infile - \
+                -outfile {output.paralogs_lr} \
+                -minQ {params.minQ} \
+                -minind {params.minind} \
+                -mincov {params.mincov}
         """
 
+rule chi2:
+    """
+    Chi2 test for each site
+    """
+    input:
+        paralogs_lr = "results/{refGenome}/paralogs/{prefix}.lr"
+    output:
+        paralogs_pval = "results/{refGenome}/paralogs/{prefix}.pval.tsv"
+    conda:
+        "envs/paralogs.yml"
+    shell:
+        """
+        python3 "scripts/get_paralogs.py" \
+	        -i {input.paralogs_lr} \
+	        -o {output.paralogs_pval} --pval
+        """
 
-# TODO Merge all chromosome/scaffolds HMM regions in a single BED file
+rule get_paralogs:
+    """
+    Mark sites below 0.05 as sites belonging to a paralogous region
+    """
+    input:
+        paralogs_pval = "results/{refGenome}/paralogs/{prefix}.pval.tsv"
+    output:
+        paralogs = "results/{refGenome}/paralogs/{prefix}.paralogs.bed"
+    conda:
+        "envs/paralogs.yml"
+    shell:
+        """
+        python3 "scripts/get_paralogs.py" \
+	        -i {input.paralogs_pval} \
+	        -o {output.paralogs} --save
+        """
 
-
-# rule rCNV:
-#     input:
-#         vcfFinal = "results/{refGenome}/{prefix}_raw.vcf.gz",
-#         vcfFinalidx = "results/{refGenome}/{prefix}_raw.vcf.gz.tbi"
-#     output:
-#         "results/{refGenome}/paralogs/rCNV/{prefix}_allele_info.tsv",
-#         "results/{refGenome}/paralogs/rCNV/{prefix}_deviant.tsv",
-#         "results/{refGenome}/paralogs/rCNV/{prefix}_CNV.tsv",
-#         "results/{refGenome}/paralogs/rCNV/{prefix}_deviant.BED",
-#         "results/{refGenome}/paralogs/rCNV/{prefix}_CNV.BED",
-#         "results/{refGenome}/paralogs/rCNV/{prefix}_duplicates.tsv",
-#         "results/{refGenome}/paralogs/rCNV/{prefix}_rCNV.html"
-#     conda:
-#         "envs/rcnv.yml"
-#     log:
-#         "logs/{refGenome}/rCNV/{prefix}.txt"
-#     benchmark:
-#         "benchmarks/{refGenome}/rCNV/{prefix}.txt"
-#     params:
-#         refGenome = "{refGenome}",
-#         prefix = "{prefix}",
-#         maxMissSample = config['maxMissSample'],
-#         maxMissSNP = config['maxMissSNP'],
-#         maxRelatedness = config['maxRelatedness']
-#     script:
-#         "scripts/rcnv.R"
+# Maybe better to do it outside ?
+rule plot_paralogs:
+    """
+    Draw Manhattan plot
+    """
+    input:
+        paralogs_pval = "results/{refGenome}/paralogs/{prefix}.pval.tsv"
+    output:
+        paralogs_plot = "results/{refGenome}/paralogs/{prefix}.paralogs.png"
+    conda:
+        "envs/paralogs.yml"
+    shell:
+        """
+        python3 "scripts/get_paralogs.py" \
+	        -i {input.paralogs_pval} \
+	        -o {output.paralogs_plot} --plot
+        """

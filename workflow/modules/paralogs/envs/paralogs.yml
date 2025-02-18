@@ -3,12 +3,11 @@ channels:
   - bioconda
   - defaults
 dependencies:
-  - bedtools
-  - samtools
-  - python=3.10
-  - r-base
-  - r-knitr
-  - r-ggplot2
-  - r-truncnorm
-  - r-docopt
+  - python=3.12
+  - vcftools==0.1.16
+  - bcftools==1.18
+  - samtools==1.21
+  - matplotlib
+  - numpy
+  - pandas
   - tbrazier::ngsparalog
