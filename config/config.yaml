@@ -117,6 +117,7 @@ quantize_cov_threshold_upper: 3 # Must be integer
 # -mincov     <int>       Minimum number of reads for an individual to be considered 'covered' [1]
 
 # Set to default parameters
+paralogs: True
 offsetQ: 33
 minind: 1
 minQ: 20

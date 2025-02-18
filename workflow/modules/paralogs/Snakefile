@@ -19,6 +19,7 @@ rule get_bam_list:
     """
     input:
         bams = expand("results/{refGenome}/bams/{sample}_final.bam", refGenome=REFGENOME, sample=BIOSAMPLE)
+    output:
         bam_list = temp("results/{refGenome}/paralogs/{prefix}.bam_list.txt")
     log:
         "logs/{refGenome}/paralogs/{prefix}.log"

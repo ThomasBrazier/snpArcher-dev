@@ -67,6 +67,13 @@ module quantize_coverage:
 
 use rule * from quantize_coverage as quantize_coverage_*
 
+module paralogs:
+    snakefile:
+        "modules/paralogs/Snakefile"
+    config:
+        config
+
+use rule * from paralogs as paralogs_*
 
 rule all:
     input:
