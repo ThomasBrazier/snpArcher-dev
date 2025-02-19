@@ -50,8 +50,7 @@ rule ngs_paralog:
     """
     input:
         bam_list = "results/{refGenome}/paralogs/{prefix}.bam_list.txt",
-        snps_list = "results/{refGenome}/paralogs/{prefix}_raw.snps_list.bed",
-        ngs_paralogs_path = config["ngs_paralogs_path"]
+        snps_list = "results/{refGenome}/paralogs/{prefix}_raw.snps_list.bed"
     output:
         paralogs_lr = "results/{refGenome}/paralogs/{prefix}.lr"
     conda:
@@ -64,7 +63,7 @@ rule ngs_paralog:
         mincov = config["mincov"]
     shell:
         """
-        samtools mpileup -b {input.bam_list} -l {input.snps_list} -q 0 -Q 0--ff UNMAP,DUP -d 0| \
+        samtools mpileup -b {input.bam_list} -l {input.snps_list} -q 0 -Q 0--ff UNMAP,DUP -d 0 | \
 	        ngsParalog calcLR -infile - \
                 -outfile {output.paralogs_lr} \
                 -minQ {params.minQ} \
