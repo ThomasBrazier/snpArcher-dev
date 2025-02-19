@@ -3,10 +3,10 @@ channels:
   - bioconda
   - defaults
 dependencies:
-  - python=3.12
-  - vcftools==0.1.16
-  - bcftools==1.18
-  - samtools==1.21
+  - python>=3.11
+  - vcftools
+  - bcftools
+  - samtools
   - matplotlib
   - numpy
   - pandas
