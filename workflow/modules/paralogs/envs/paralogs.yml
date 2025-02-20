@@ -1,3 +1,4 @@
+name: ngsparalog
 channels:
   - conda-forge
   - bioconda
@@ -5,5 +6,5 @@ channels:
 dependencies:
   - bedtools
   - samtools
-  - python=3.10
+  - python
   - tbrazier::ngsparalog
