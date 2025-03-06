@@ -10,4 +10,6 @@ dependencies:
   - matplotlib
   - numpy
   - pandas
+  - scipy
+  - statsmodels
   - tbrazier::ngsparalog

@@ -1,17 +1,23 @@
 import pandas as pd
 import os
 configfile: "config/config.yaml"
+include: "rules/common.smk"
 import snparcher_utils
 
 samples = snparcher_utils.parse_sample_sheet(config)
-BIOSAMPLE = samples["BioSample"].unique().tolist()
-REFGENOME = samples['refGenome'].unique().tolist()
-FINAL_PREFIX = config["final_prefix"]
+BIOSAMPLE: list = samples["BioSample"].unique().tolist()
+REFGENOME: list = samples['refGenome'].unique().tolist()
+FINAL_PREFIX: str = config["final_prefix"]
+CHROMOSOMES: list = get_chr_list(config["chrom_list"])
+
+wildcard_constraints:
+    prefix = config["final_prefix"],
+    chrom = "|".join(get_chr_list(config["chrom_list"]))
+
 
 rule all:
     input:
-        expand("results/{refGenome}/paralogs/{prefix}.paralogs.bed", refGenome=REFGENOME, prefix=FINAL_PREFIX),
-        expand("results/{refGenome}/paralogs/{prefix}.paralogs.png", refGenome=REFGENOME, prefix=FINAL_PREFIX)
+        expand("results/{refGenome}/paralogs/{prefix}.{chrom}.paralogs.bed", refGenome=REFGENOME, prefix=FINAL_PREFIX, chrom=CHROMOSOMES),
 
 rule get_bam_list:
     """
@@ -35,12 +41,12 @@ rule get_snps_list:
     input:
         vcf = "results/{refGenome}/{prefix}_raw.vcf.gz"
     output:
-        snps_list = temp("results/{refGenome}/paralogs/{prefix}_raw.snps_list.bed")
+        snps_list = temp("results/{refGenome}/paralogs/{prefix}.{chrom}.snps_list.bed")
     conda:
         "envs/paralogs.yml"
     shell:
         """
-        bcftools view --no-header {input.vcf} | \
+        bcftools view --no-header -r {wildcards.chrom} {input.vcf} | \
             awk -F '\t' '{{print $1 "\t" $2}}' > {output.snps_list}
         """
 
@@ -50,14 +56,14 @@ rule ngs_paralog:
     """
     input:
         bam_list = "results/{refGenome}/paralogs/{prefix}.bam_list.txt",
-        snps_list = "results/{refGenome}/paralogs/{prefix}_raw.snps_list.bed",
+        snps_list = "results/{refGenome}/paralogs/{prefix}.{chrom}.snps_list.bed",
         ngsparalogs_path = config["ngsparalog_path"]
     output:
-        paralogs_lr = "results/{refGenome}/paralogs/{prefix}.lr"
+        paralogs_lr = "results/{refGenome}/paralogs/{prefix}.{chrom}.lr"
     conda:
         "envs/paralogs.yml"
     log:
-        "logs/{refGenome}/paralogs/{prefix}.log"
+        "logs/{refGenome}/paralogs/{prefix}.{chrom}.log"
     params:
         minQ = config["minQ"],
         minind = config["minind"],
@@ -77,14 +83,15 @@ rule chi2:
     Chi2 test for each site
     """
     input:
-        paralogs_lr = "results/{refGenome}/paralogs/{prefix}.lr"
+        paralogs_lr = "results/{refGenome}/paralogs/{prefix}.{chrom}.lr",
+        script = workflow.source_path("scripts/get_paralogs.py")
     output:
-        paralogs_pval = "results/{refGenome}/paralogs/{prefix}.pval.tsv"
+        paralogs_pval = "results/{refGenome}/paralogs/{prefix}.{chrom}.pval.tsv"
     conda:
         "envs/paralogs.yml"
     shell:
         """
-        python3 "scripts/get_paralogs.py" \
+        python3 {input.script} \
 	        -i {input.paralogs_lr} \
 	        -o {output.paralogs_pval} --pval
         """
@@ -94,14 +101,15 @@ rule get_paralogs:
     Mark sites below 0.05 as sites belonging to a paralogous region
     """
     input:
-        paralogs_pval = "results/{refGenome}/paralogs/{prefix}.pval.tsv"
+        paralogs_pval = "results/{refGenome}/paralogs/{prefix}.{chrom}.pval.tsv",
+        script = workflow.source_path("scripts/get_paralogs.py")
     output:
-        paralogs = "results/{refGenome}/paralogs/{prefix}.paralogs.bed"
+        paralogs = "results/{refGenome}/paralogs/{prefix}.{chrom}.paralogs.bed"
     conda:
         "envs/paralogs.yml"
     shell:
         """
-        python3 "scripts/get_paralogs.py" \
+        python3 {input.script} \
 	        -i {input.paralogs_pval} \
 	        -o {output.paralogs} --save
         """
@@ -112,14 +120,15 @@ rule plot_paralogs:
     Draw Manhattan plot
     """
     input:
-        paralogs_pval = "results/{refGenome}/paralogs/{prefix}.pval.tsv"
+        paralogs_pval = "results/{refGenome}/paralogs/{prefix}.pval.tsv",
+        script = workflow.source_path("scripts/get_paralogs.py")
     output:
         paralogs_plot = "results/{refGenome}/paralogs/{prefix}.paralogs.png"
     conda:
         "envs/paralogs.yml"
     shell:
         """
-        python3 "scripts/get_paralogs.py" \
+        python3 {input.script} \
 	        -i {input.paralogs_pval} \
 	        -o {output.paralogs_plot} --plot
         """

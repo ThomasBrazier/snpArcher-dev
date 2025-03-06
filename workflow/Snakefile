@@ -58,7 +58,6 @@ module trackhub:
 
 use rule * from trackhub as trackhub_*
 
-
 module quantize_coverage:
     snakefile:
         "modules/quantize_cov/Snakefile"

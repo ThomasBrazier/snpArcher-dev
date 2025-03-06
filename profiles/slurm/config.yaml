@@ -2,15 +2,15 @@ executor: slurm
 use-conda: True
 jobs: 100 # Have up to N jobs submitted at any given time
 latency-wait: 100 # Wait N seconds for output files due to latency
-retries: 0 # Retry jobs N times.
+retries: 1 # Retry jobs N times.
 
 # These resources will be applied to all rules. Can be overriden on a per-rule basis below.
 default-resources:
-  mem_mb: attempt * 2000
-  mem_mb_reduced: (attempt * 2000) * 0.9 # Mem allocated to java for GATK rules (tries to prevent OOM errors)
-  slurm_partition: ""
-  slurm_account: # Same as sbatch -A. Not all clusters use this.
-  runtime: 30 # In minutes 
+  mem_mb: attempt * 5000
+  mem_mb_reduced: (attempt * 5000) * 0.9 # Mem allocated to java for GATK rules (tries to prevent OOM errors)
+  slurm_partition: "genouest,ecobio"
+  slurm_account: mbrault # Same as sbatch -A. Not all clusters use this.
+  runtime: 240 # In minutes 
 
 
 # Control number of threads each rule will use.

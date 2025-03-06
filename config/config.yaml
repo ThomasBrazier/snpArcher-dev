@@ -119,6 +119,7 @@ quantize_cov_threshold_upper: 3 # Must be integer
 # Set to default parameters
 paralogs: True
 ngsparalog_path: "/projects/plantlp/softwares/ngsParalog"
+chrom_list: ""
 offsetQ: 33
 minind: 1
 minQ: 20
@@ -137,4 +138,4 @@ mincov: 1
 # --paramOnly=<0|1>      Only estimate emission density params if 1 [default: 0]
 # --paramfile=<file>     File with emission density parameter estimates
 # --printStates=<0|1>    Output SNP states if 1 [default: 0]
-lrquantile: 0.98
+# lrquantile: 0.98
