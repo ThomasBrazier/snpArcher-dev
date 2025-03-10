@@ -23,7 +23,7 @@ def chi2_test(infile:str, outfile:str):
     df_ngs["pval"] = 0.5*chi2.sf(df_ngs["LR_mismapped"], df=1) # sf means survival function = 1 - Cumulative density function = P(X > x)
     df_ngs["pval_adj"] = multipletests(df_ngs["pval"], method="bonferroni")[1]
     
-    df_ngs["paralog"] = df_ngs["pval_adj"] < PVAL
+    df_ngs["paralog"] = df_ngs["pval_adj"] < PVAL # True if <, else False
     df_ngs.to_csv(outfile, index=None, sep="\t")
 
 
@@ -87,13 +87,14 @@ def save_paralogs(infile:str, outfile:str):
     df_ngs = read_csv(infile, index_col=None, sep="\t")
 
     paralogs = df_ngs[df_ngs["paralog"] == True][["chr", "pos"]]
-    
+    paralogs["end"] = paralogs["pos"] + 1
+
     n_paralogs = len(df_ngs[df_ngs["paralog"] == True])
     total_SNPs = len(df_ngs)
         
     print(f"\n \tParalogs : {n_paralogs}\n\tTotal # SNPs : {total_SNPs}\n\tProportion of paralogs : {round(n_paralogs / total_SNPs, 5)}\n")
     
-    paralogs.to_csv(outfile, index=None, sep="\t")
+    paralogs.to_csv(outfile, index=None, sep="\t", header=False)
 
 def strip_str(string):
     return string.strip()
