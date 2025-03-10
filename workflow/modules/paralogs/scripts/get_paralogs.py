@@ -76,6 +76,7 @@ def manhattan_plot(infile:str, outfile:str):
     plt.savefig(outfile)
 
 def save_paralogs(infile:str, outfile:str):
+    #TODO: Merge overlapping intervals
     """Save sites that have adjusted p-value below 0.05
     considered as paralogs
 
@@ -87,13 +88,15 @@ def save_paralogs(infile:str, outfile:str):
     df_ngs = read_csv(infile, index_col=None, sep="\t")
 
     paralogs = df_ngs[df_ngs["paralog"] == True][["chr", "pos"]]
-    
+
+    paralogs["end"] = paralogs["pos"] + 1
+
     n_paralogs = len(df_ngs[df_ngs["paralog"] == True])
     total_SNPs = len(df_ngs)
         
     print(f"\n \tParalogs : {n_paralogs}\n\tTotal # SNPs : {total_SNPs}\n\tProportion of paralogs : {round(n_paralogs / total_SNPs, 5)}\n")
     
-    paralogs.to_csv(outfile, index=None, sep="\t")
+    paralogs.to_csv(outfile, index=None, sep="\t", header=False)
 
 def strip_str(string):
     return string.strip()
