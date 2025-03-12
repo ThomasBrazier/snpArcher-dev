@@ -1,3 +1,4 @@
+name: paralogs
 channels:
   - conda-forge
   - bioconda
