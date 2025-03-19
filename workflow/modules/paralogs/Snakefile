@@ -50,6 +50,7 @@ rule get_snps_list:
             awk -F '\t' '{{print $1 "\t" $2}}' > {output.snps_list}
         """
 
+
 rule ngs_paralog:
     """
     Main ngsparalog command

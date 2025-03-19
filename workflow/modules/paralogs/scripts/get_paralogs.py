@@ -76,7 +76,6 @@ def manhattan_plot(infile:str, outfile:str):
     plt.savefig(outfile)
 
 def save_paralogs(infile:str, outfile:str):
-    #TODO: Merge overlapping intervals
     """Save sites that have adjusted p-value below 0.05
     considered as paralogs
 
