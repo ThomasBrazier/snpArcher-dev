@@ -13,4 +13,4 @@ dependencies:
   - pandas
   - scipy
   - statsmodels
-  - tbrazier::ngsparalog
+  #- tbrazier::ngsparalog
