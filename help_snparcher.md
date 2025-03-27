@@ -1,7 +1,7 @@
 # snpArcher quick notice
 
 ## Install
-Install github project (here its Thomas version but you can do the same with original snpArcher git repo)
+Install github project
 
 ```
 git clone https://github.com/ThomasBrazier/snpArcher-dev.git
@@ -72,7 +72,7 @@ Then I suggest to use this command:
 This allows to run in a specific directory outside snpArcher repo.
 And to keep track of config files outside and have a clean output directory (imo)
 
-The script **01_SNP_CALLING/scripts/go_snparcher.sh** does all of that
+The script **01_SNP_CALLING/scripts/go_snparcher.sh** does all of that. You should copy it on your scratch and, inside the script, set the path to your snparcher directory.
 
 ## Check the ongoing analysis
 
