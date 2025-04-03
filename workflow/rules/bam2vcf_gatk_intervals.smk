@@ -12,8 +12,8 @@ rule bam2gvcf:
         l = "results/{refGenome}/intervals/gvcf_intervals/{l}-scattered.interval_list",
         
     output:
-        gvcf = "results/{refGenome}/interval_gvcfs/{sample}/{l}.raw.g.vcf.gz",
-        gvcf_idx = "results/{refGenome}/interval_gvcfs/{sample}/{l}.raw.g.vcf.gz.tbi"
+        gvcf = temp("results/{refGenome}/interval_gvcfs/{sample}/{l}.raw.g.vcf.gz"),
+        gvcf_idx = temp("results/{refGenome}/interval_gvcfs/{sample}/{l}.raw.g.vcf.gz.tbi")
     log:
         "logs/{refGenome}/gatk_hc/{sample}/{l}.txt"
     benchmark:
