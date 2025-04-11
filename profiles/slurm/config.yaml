@@ -1,17 +1,16 @@
 executor: slurm
 use-conda: True
-jobs: 100 # Have up to N jobs submitted at any given time
-latency-wait: 100 # Wait N seconds for output files due to latency
-retries: 0 # Retry jobs N times.
+jobs: 50 # Have up to N jobs submitted at any given time
+latency-wait: 30 # Wait N seconds for output files due to latency
+retries: 1 # Retry jobs N times.
 
 # These resources will be applied to all rules. Can be overriden on a per-rule basis below.
 default-resources:
-  mem_mb: attempt * 2000
-  mem_mb_reduced: (attempt * 2000) * 0.9 # Mem allocated to java for GATK rules (tries to prevent OOM errors)
-  slurm_partition: ""
-  slurm_account: # Same as sbatch -A. Not all clusters use this.
-  runtime: 30 # In minutes 
-
+  mem_mb: attempt * 5000
+  mem_mb_reduced: (attempt * 5000) * 0.9 # Mem allocated to java for GATK rules (tries to prevent OOM errors)
+  slurm_partition: "fast"
+  slurm_account: "plant_lewontin_paradox" # Same as sbatch -A. Not all clusters use this.
+  runtime: 720 # In minutes 
 
 # Control number of threads each rule will use.
 set-threads:
@@ -24,27 +23,27 @@ set-threads:
   create_db_intervals: 1
   picard_intervals: 1
   # Mappability
-  genmap: 1 # Can use more than 1 thread
+  genmap: 2 # Can use more than 1 thread
   mappability_bed: 1 # Does NOT use more than 1 thread
   # Fastq Processing. Can use more than 1 thread.
-  get_fastq_pe: 1 
-  fastp: 1
+  get_fastq_pe: 8 
+  fastp: 4
   # Alignment. Can use more than 1 thread, except merge_bams.
-  bwa_map: 1
-  dedup: 1
+  bwa_map: 16
+  dedup: 8
   merge_bams: 1 # Does NOT use more than 1 thread.
   # GVCF 
-  bam2gvcf: 1 # Should be run with no more than 2 threads.
+  bam2gvcf: 2 # Should be run with no more than 2 threads.
   concat_gvcfs: 1 # Does NOT use more than 1 thread.
   bcftools_norm: 1 # Does NOT use more than 1 thread.
   create_db_mapfile: 1 # Does NOT use more than 1 thread.
-  gvcf2DB: 1 # Should be run with no more than 2 threads.
+  gvcf2DB: 2 # Should be run with no more than 2 threads.
   # VCF
-  DB2vcf: 1 # Should be run with no more than 2 threads.
-  filterVcfs: 1 # Should be run with no more than 2 threads.
-  sort_gatherVcfs: 1 # Should be run with no more than 2 threads.
+  DB2vcf: 2 # Should be run with no more than 2 threads.
+  filterVcfs: 2 # Should be run with no more than 2 threads.
+  sort_gatherVcfs: 2 # Should be run with no more than 2 threads.
   # Callable Bed
-  compute_d4: 1 # Can use more than 1 thread
+  compute_d4: 4 # Can use more than 1 thread
   create_cov_bed: 1 # Does NOT use more than 1 thread.
   merge_d4: 1 # Does NOT use more than 1 thread.
   # Summary Stats Does NOT use more than 1 thread.
@@ -89,15 +88,9 @@ set-threads:
   sentieon_haplotyper: 1
   sentieon_combine_gvcf: 1
   sentieon_bam_stats: 1 # Does NOT use more than 1 thread.
-  # Module quantize coverage
-  quantize_cov_mosdepth_summary: 1
-  quantize_cov_mosdepth_quantize: 1
-  quantize_cov_callable_bed_per_sample: 1
-  quantize_cov_callable_bed_all_samples: 1
-  quantize_cov_add_mappability: 1
 
 # Control other resources used by each rule.
-# set-resources:
+set-resources:
 #   # Reference Genome Processing
 #   copy_reference:
 #     mem_mb: attempt * 2000
@@ -162,11 +155,11 @@ set-threads:
 #     cpus_per_task:
 
 #   # Alignment  
-#   bwa_map:
-#     mem_mb: attempt * 2000
-#     slurm_partition:
-#     runtime:
-#     cpus_per_task:
+  bwa_map:
+    mem_mb: attempt * 20000
+    mem_mb_reduced: (attempt * 20000) * 0.9
+    slurm_partition: "long"
+    runtime: 11520
 #   dedup:
 #     mem_mb: attempt * 2000
 #     slurm_partition:
@@ -179,12 +172,12 @@ set-threads:
 #     cpus_per_task:
 
 #   # GVCF  
-#   bam2gvcf: # HaplotypeCaller
-#     mem_mb: attempt * 2000
-#     mem_mb_reduced: (attempt * 2000) * 0.9 # Mem allocated to java (tries to prevent OOM errors)
-#     slurm_partition:
-#     runtime:
-#     cpus_per_task: # Mem allocated to the snakemake job
+  bam2gvcf: # HaplotypeCaller
+    mem_mb: attempt * 20000
+    mem_mb_reduced: (attempt * 20000) * 0.9 # Mem allocated to java (tries to prevent OOM errors)
+    slurm_partition: "long"
+    runtime: 2880
+    cpus_per_task: 2
 #   concat_gvcfs:
 #     mem_mb: attempt * 2000
 #     slurm_partition:
@@ -200,13 +193,12 @@ set-threads:
 #     slurm_partition:
 #     runtime:
 #     cpus_per_task:
-#   gvcf2DB: # GenomicsDBImport
-#     mem_mb: attempt * 2000
-#     mem_mb_reduced: (attempt * 2000) * 0.9 # Mem allocated to java (tries to prevent OOM errors)
-#     slurm_partition:
-#     runtime:
-#     cpus_per_task:
-    
+  gvcf2DB: # GenomicsDBImport
+    mem_mb: attempt * 20000
+    mem_mb_reduced: (attempt * 20000) * 0.9 # Mem allocated to java (tries to prevent OOM errors)
+    slurm_partition: "long"
+    runtime: 2880
+    cpus_per_task: 1
 #   # VCF
 #   DB2vcf: # GenotypeGVCFs
 #     mem_mb: attempt * 2000
@@ -301,11 +293,19 @@ set-threads:
 #     slurm_partition:
 #     runtime:
 #     cpus_per_task:
-#   qc_vcftools_individuals:
-#     mem_mb: attempt * 2000
-#     slurm_partition:
-#     runtime:
-#     cpus_per_task:
+#  qc_vcftools_individuals:
+#    mem_mb: attempt * 2000
+#    slurm_partition: fast
+#    runtime: 360
+#    cpus_per_task: 1
+
+#   # Quantize module
+
+  quantize_coverage_add_mappability:
+    mem_mb: attempt * 10000
+    slurm_partition: "fast"
+    runtime: 360
+    cpus_per_task: 1
 
 #   # MK Module
 #   mk_degenotate:
@@ -435,29 +435,8 @@ set-threads:
 #     runtime:
 #     cpus_per_task:
 
-#   # Mosdepth Quantize module
-#   quantize_cov_mosdepth_summary:
-#     mem_mb: attempt * 2000
-#     slurm_partition:
-#     runtime:
-#     cpus_per_task:
-#   quantize_cov_mosdepth_quantize:
-#     mem_mb: attempt * 2000
-#     slurm_partition:
-#     runtime:
-#     cpus_per_task:
-#   quantize_cov_callable_bed_per_sample:
-#     mem_mb: attempt * 2000
-#     slurm_partition:
-#     runtime:
-#     cpus_per_task:
-#   quantize_cov_callable_bed_all_samples:
-#     mem_mb: attempt * 2000
-#     slurm_partition:
-#     runtime:
-#     cpus_per_task:
-#   quantize_cov_add_mappability:
-#     mem_mb: attempt * 2000
-#     slurm_partition:
-#     runtime:
-#     cpus_per_task:
+  paralogs_ngs_paralogs:
+    mem_mb: attempt * 20000
+    slurm_partition: "long"
+    slurm_account: "plant_lewontin_paradox"
+    runtime: 2920 # In minutes 
