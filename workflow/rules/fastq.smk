@@ -51,8 +51,8 @@ rule fastp:
     input:
         unpack(get_reads_fastp) 
     output:
-        r1 = temp("results/{refGenome}/filtered_fastqs/{sample}/{run}_1.fastq.gz"),
-        r2 = temp("results/{refGenome}/filtered_fastqs/{sample}/{run}_2.fastq.gz"),
+        r1 = "results/{refGenome}/filtered_fastqs/{sample}/{run}_1.fastq.gz",
+        r2 = "results/{refGenome}/filtered_fastqs/{sample}/{run}_2.fastq.gz",
         summ = temp("results/{refGenome}/summary_stats/{sample}/{run}.fastp.out")
     conda:
         "../envs/fastq2bam.yml"
